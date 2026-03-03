@@ -1,0 +1,13 @@
+import {Router} from "express";
+import {createDepartment, deleteDepartment, getAllDepartments, getDepartmentById, updateDepartment} from "../../controllers/admin/department";
+import {catchAsync} from "../../utils/catchAsync";
+import {validate} from "../../middlewares/validation";
+import {createDepartmentSchema, updateDepartmentSchema} from "../../validators/admin/department";
+import { checkPermission } from "../../middlewares/checkpermission";
+const router = Router();
+router.get("/",checkPermission("departments","View"), catchAsync(getAllDepartments));
+router.post("/",checkPermission("departments","Add"), validate(createDepartmentSchema), catchAsync(createDepartment));
+router.get("/:id",checkPermission("departments","View"), catchAsync(getDepartmentById));
+router.delete("/:id",checkPermission("departments","Delete"), catchAsync(deleteDepartment));
+router.put("/:id",checkPermission("departments","Edit"), validate(updateDepartmentSchema), catchAsync(updateDepartment));
+export default router;
