@@ -1,5 +1,8 @@
 "use strict";
 // src/controllers/admin/busController.ts
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getBusDetails = exports.getBusTypes = exports.getBusStatistics = exports.getBusesByStatus = exports.updateBusStatus = exports.deleteBus = exports.updateBus = exports.createBus = exports.getBusById = exports.getAllBuses = void 0;
 const db_1 = require("../../models/db");
@@ -9,6 +12,7 @@ const response_1 = require("../../utils/response");
 const NotFound_1 = require("../../Errors/NotFound");
 const BadRequest_1 = require("../../Errors/BadRequest");
 const handleImages_1 = require("../../utils/handleImages");
+const qrcode_1 = __importDefault(require("qrcode"));
 const deleteImage_1 = require("../../utils/deleteImage");
 const uuid_1 = require("uuid");
 const getAllBuses = async (req, res) => {
@@ -101,6 +105,7 @@ const createBus = async (req, res) => {
     // حفظ الصور
     let savedLicenseImage = null;
     let savedBusImage = null;
+    let savedQrCodeImage = null;
     if (licenseImage) {
         const result = await (0, handleImages_1.saveBase64Image)(req, licenseImage, "buses/licenses");
         savedLicenseImage = result.url;
@@ -111,6 +116,15 @@ const createBus = async (req, res) => {
     }
     // توليد ID
     const newBusId = (0, uuid_1.v4)();
+    // توليد QR Code
+    try {
+        const qrCodeDataUrl = await qrcode_1.default.toDataURL(newBusId);
+        const qrResult = await (0, handleImages_1.saveBase64Image)(req, qrCodeDataUrl, "buses/qrcodes");
+        savedQrCodeImage = qrResult.url;
+    }
+    catch (err) {
+        console.error("Failed to generate QR Code for bus", err);
+    }
     await db_1.db.insert(schema_1.buses).values({
         id: newBusId,
         busTypeId,
@@ -121,6 +135,7 @@ const createBus = async (req, res) => {
         licenseExpiryDate: licenseExpiryDate || null,
         licenseImage: savedLicenseImage,
         busImage: savedBusImage,
+        qrCode: savedQrCodeImage,
     });
     // جلب الباص الجديد
     const [createdBus] = await db_1.db
@@ -133,6 +148,7 @@ const createBus = async (req, res) => {
         licenseExpiryDate: schema_1.buses.licenseExpiryDate,
         licenseImage: schema_1.buses.licenseImage,
         busImage: schema_1.buses.busImage,
+        qrCode: schema_1.buses.qrCode,
         status: schema_1.buses.status,
         createdAt: schema_1.buses.createdAt,
         busType: {

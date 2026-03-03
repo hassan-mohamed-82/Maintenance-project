@@ -24,7 +24,9 @@ exports.MODULES = [
     "organizationServices",
     "payments",
     "paymentMethods",
-    "plans"
+    "plans",
+    "maintenance_types",
+    "maintenances"
 ];
 exports.ACTION_NAMES = ["View", "Add", "Edit", "Delete", "Status"];
 // src/constants/superAdminPermissions.ts

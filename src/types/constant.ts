@@ -22,7 +22,9 @@ export const MODULES = [
   "organizationServices",
   "payments",
   "paymentMethods",
-  "plans"
+  "plans",
+  "maintenance_types",
+  "maintenances"
 ] as const;
 
 export const ACTION_NAMES = ["View", "Add", "Edit", "Delete", "Status"] as const;
@@ -36,7 +38,7 @@ export type ActionName = (typeof ACTION_NAMES)[number];
 
 export const SUPER_ADMIN_MODULES = [
   "organizations",
-  "plans", 
+  "plans",
   "payments",
   "subscriptions",
   "payment_methods",

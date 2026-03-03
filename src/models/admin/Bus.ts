@@ -39,4 +39,5 @@ export const buses = mysqlTable("buses", {
   status: mysqlEnum("status", ["active", "inactive", "maintenance"]).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
+  qrCode: varchar("qr_code", { length: 500 }),
 });

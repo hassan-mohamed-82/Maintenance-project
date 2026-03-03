@@ -1,0 +1,1 @@
+ALTER TABLE `buses` ADD `qr_code` varchar(500);

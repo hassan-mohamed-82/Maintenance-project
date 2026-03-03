@@ -25,4 +25,5 @@ exports.buses = (0, mysql_core_1.mysqlTable)("buses", {
     status: (0, mysql_core_1.mysqlEnum)("status", ["active", "inactive", "maintenance"]).default("active"),
     createdAt: (0, mysql_core_1.timestamp)("created_at").defaultNow(),
     updatedAt: (0, mysql_core_1.timestamp)("updated_at").defaultNow().onUpdateNow(),
+    qrCode: (0, mysql_core_1.varchar)("qr_code", { length: 500 }),
 });

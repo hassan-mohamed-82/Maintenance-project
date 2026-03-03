@@ -8,6 +8,7 @@ import { SuccessResponse } from "../../utils/response";
 import { NotFound } from "../../Errors/NotFound";
 import { BadRequest } from "../../Errors/BadRequest";
 import { saveBase64Image } from "../../utils/handleImages";
+import QRCode from "qrcode";
 import { deletePhotoFromServer } from "../../utils/deleteImage";
 import { v4 as uuidv4 } from "uuid";
 
@@ -121,6 +122,7 @@ export const createBus = async (req: Request, res: Response) => {
   // حفظ الصور
   let savedLicenseImage: string | null = null;
   let savedBusImage: string | null = null;
+  let savedQrCodeImage: string | null = null;
 
   if (licenseImage) {
     const result = await saveBase64Image(req, licenseImage, "buses/licenses");
@@ -135,6 +137,15 @@ export const createBus = async (req: Request, res: Response) => {
   // توليد ID
   const newBusId = uuidv4();
 
+  // توليد QR Code
+  try {
+    const qrCodeDataUrl = await QRCode.toDataURL(newBusId);
+    const qrResult = await saveBase64Image(req, qrCodeDataUrl, "buses/qrcodes");
+    savedQrCodeImage = qrResult.url;
+  } catch (err) {
+    console.error("Failed to generate QR Code for bus", err);
+  }
+
   await db.insert(buses).values({
     id: newBusId,
     busTypeId,
@@ -145,6 +156,7 @@ export const createBus = async (req: Request, res: Response) => {
     licenseExpiryDate: licenseExpiryDate || null,
     licenseImage: savedLicenseImage,
     busImage: savedBusImage,
+    qrCode: savedQrCodeImage,
   });
 
   // جلب الباص الجديد
@@ -158,6 +170,7 @@ export const createBus = async (req: Request, res: Response) => {
       licenseExpiryDate: buses.licenseExpiryDate,
       licenseImage: buses.licenseImage,
       busImage: buses.busImage,
+      qrCode: buses.qrCode,
       status: buses.status,
       createdAt: buses.createdAt,
       busType: {
