@@ -43,6 +43,13 @@
       "when": 1768742223588,
       "tag": "0005_eminent_ikaris",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1772536326433,
+      "tag": "0006_broad_gauntlet",
+      "breakpoints": true
     }
   ]
 }

@@ -13,7 +13,7 @@ export interface Permission {
 }
 
 export type SuperAdminType = "superadmin" | "subadmin";
-export type AdminType = "organizer" | "admin";
+export type AdminType = "superadmin" | "admin";
 export type MobileUserType = "driver" | "codriver" | "parent";
 export type Role = SuperAdminType | AdminType | MobileUserType;
 

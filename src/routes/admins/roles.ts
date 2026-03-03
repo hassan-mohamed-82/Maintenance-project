@@ -10,21 +10,19 @@ import {
 } from "../../controllers/admin/roles";
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
-import { createRoleSchema, updateRoleSchema } from "../../validators/admin/roles";
-import { checkPermission } from "../../middlewares/checkpermission";
 const router = Router();
 
 // ✅ Super Admin Role Routes
 router.get("/permissions", catchAsync(getAvailablePermissions));
 // ✅ Get All Roles
-router.get("/",checkPermission("roles","View"), catchAsync(getAllRoles));
+router.get("/",catchAsync(getAllRoles));
 // ✅ Get Role By ID
-router.get("/:id",checkPermission("roles","View"), catchAsync(getRoleById));
+router.get("/:id",catchAsync(getRoleById));
 // ✅ Create Role
-router.post("/",checkPermission("roles","Add"), validate(createRoleSchema), catchAsync(createRole));   
+router.post("/", catchAsync(createRole));   
 // ✅ Update Role
-router.put("/:id",checkPermission("roles","Edit"), validate(updateRoleSchema), catchAsync(updateRole));
+router.put("/:id", catchAsync(updateRole));
 // ✅ Delete Role
-router.delete("/:id",checkPermission("roles","Delete"), catchAsync(deleteRole));
+router.delete("/:id", catchAsync(deleteRole));
 
 export default router;

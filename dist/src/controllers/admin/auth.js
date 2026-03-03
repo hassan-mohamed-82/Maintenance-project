@@ -59,8 +59,8 @@ async function login(req, res) {
     // 4) جلب الـ Role والـ Permissions
     let role = null;
     let permissions = [];
-    if (admin[0].type === "organizer") {
-        // الـ Organizer له كل الصلاحيات
+    if (admin[0].type === "superadmin") {
+        // الـ SuperAdmin له كل الصلاحيات
         permissions = [];
     }
     else if (admin[0].roleId) {
@@ -77,21 +77,15 @@ async function login(req, res) {
             permissions = parsePermissions(roleData[0].permissions);
         }
     }
-    // دمج صلاحيات الـ Admin الإضافية
-    const adminPermissions = parsePermissions(admin[0].permissions);
-    if (adminPermissions.length > 0) {
-        permissions = mergePermissions(permissions, adminPermissions);
-    }
     // 5) إنشاء التوكن
     const tokenPayload = {
         id: admin[0].id,
         type: admin[0].type,
         email: admin[0].email,
         name: admin[0].name,
-        organizationId: admin[0].organizationId,
     };
-    const token = admin[0].type === "organizer"
-        ? (0, auth_1.generateOrganizerToken)(tokenPayload)
+    const token = admin[0].type === "superadmin"
+        ? (0, auth_1.generateSuperAdminToken)(tokenPayload)
         : (0, auth_1.generateAdminToken)(tokenPayload);
     // 6) الرد
     return (0, response_1.SuccessResponse)(res, {
@@ -104,7 +98,6 @@ async function login(req, res) {
             phone: admin[0].phone,
             avatar: admin[0].avatar,
             type: admin[0].type,
-            organizationId: admin[0].organizationId,
             role,
             permissions,
         },

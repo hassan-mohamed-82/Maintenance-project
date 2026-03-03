@@ -18,3 +18,4 @@ Object.defineProperty(exports, "__esModule", { value: true });
 __exportStar(require("./admin/admin"), exports);
 __exportStar(require("./admin/roles"), exports);
 __exportStar(require("./admin/Bus"), exports);
+__exportStar(require("./admin/Bustype"), exports);

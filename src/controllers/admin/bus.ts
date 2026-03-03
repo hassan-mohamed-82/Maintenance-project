@@ -12,12 +12,6 @@ import { deletePhotoFromServer } from "../../utils/deleteImage";
 import { v4 as uuidv4 } from "uuid";
 
 export const getAllBuses = async (req: Request, res: Response) => {
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
-
   const allBuses = await db
     .select({
       id: buses.id,
@@ -38,32 +32,14 @@ export const getAllBuses = async (req: Request, res: Response) => {
       },
     })
     .from(buses)
-    .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id))
-    .where(eq(buses.organizationId, organizationId));
+    .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id));
 
-  // إضافة معلومات الاستخدام
-  const subscription = await getActiveSubscription(organizationId);
-  const usageInfo = subscription
-    ? {
-      current: allBuses.length,
-      max: subscription.plan.maxBuses,
-      remaining: subscription.plan.maxBuses
-        ? subscription.plan.maxBuses - allBuses.length
-        : "unlimited",
-    }
-    : null;
-
-  SuccessResponse(res, { buses: allBuses, usage: usageInfo }, 200);
+  SuccessResponse(res, { buses: allBuses }, 200);
 };
 
 // ✅ Get Bus By ID
 export const getBusById = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
 
   const bus = await db
     .select({
@@ -87,7 +63,7 @@ export const getBusById = async (req: Request, res: Response) => {
     })
     .from(buses)
     .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id))
-    .where(and(eq(buses.id, id), eq(buses.organizationId, organizationId)))
+    .where(eq(buses.id, id))
     .limit(1);
 
   if (!bus[0]) {
@@ -97,7 +73,6 @@ export const getBusById = async (req: Request, res: Response) => {
   SuccessResponse(res, { bus: bus[0] }, 200);
 };
 
-// ✅ Create Bus
 export const createBus = async (req: Request, res: Response) => {
   const {
     busTypeId,
@@ -109,15 +84,6 @@ export const createBus = async (req: Request, res: Response) => {
     licenseImage,
     busImage,
   } = req.body;
-
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
-
-  // التحقق من الاشتراك وحد الباصات أولاً
-  await checkBusLimit(organizationId);
 
   // تحقق من وجود الـ Bus Type
   const busType = await db
@@ -141,16 +107,11 @@ export const createBus = async (req: Request, res: Response) => {
     throw new BadRequest("Plate Number already exists");
   }
 
-  // تحقق من عدم تكرار رقم الباص في نفس المنظمة
+  // تحقق من عدم تكرار رقم الباص
   const existingBusNumber = await db
     .select()
     .from(buses)
-    .where(
-      and(
-        eq(buses.busNumber, busNumber),
-        eq(buses.organizationId, organizationId)
-      )
-    )
+    .where(eq(buses.busNumber, busNumber))
     .limit(1);
 
   if (existingBusNumber[0]) {
@@ -176,7 +137,6 @@ export const createBus = async (req: Request, res: Response) => {
 
   await db.insert(buses).values({
     id: newBusId,
-    organizationId,
     busTypeId,
     plateNumber,
     busNumber,
@@ -234,17 +194,11 @@ export const updateBus = async (req: Request, res: Response) => {
     status,
   } = req.body;
 
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
-
   // تحقق من وجود الباص
   const existingBus = await db
     .select()
     .from(buses)
-    .where(and(eq(buses.id, id), eq(buses.organizationId, organizationId)))
+    .where(eq(buses.id, id))
     .limit(1);
 
   if (!existingBus[0]) {
@@ -279,21 +233,16 @@ export const updateBus = async (req: Request, res: Response) => {
     }
   }
 
-  // لو بيغير رقم الباص، نتحقق إنه مش مكرر في نفس الـ Organization
+  // لو بيغير رقم الباص، نتحقق إنه مش مكرر 
   if (busNumber && busNumber !== bus.busNumber) {
     const existingBusNumber = await db
       .select()
       .from(buses)
-      .where(
-        and(
-          eq(buses.busNumber, busNumber),
-          eq(buses.organizationId, organizationId)
-        )
-      )
+      .where(eq(buses.busNumber, busNumber))
       .limit(1);
 
     if (existingBusNumber[0]) {
-      throw new BadRequest("Bus Number already exists in this organization");
+      throw new BadRequest("Bus Number already exists");
     }
   }
 
@@ -395,27 +344,18 @@ export const updateBus = async (req: Request, res: Response) => {
 // ✅ Delete Bus
 export const deleteBus = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
 
   const existingBus = await db
     .select()
     .from(buses)
-    .where(and(eq(buses.id, id), eq(buses.organizationId, organizationId)))
+    .where(eq(buses.id, id))
     .limit(1);
 
   if (!existingBus[0]) {
     throw new NotFound("Bus not found");
   }
 
-  // Check if bus has associated rides
-  const associatedRides = await db.select().from(rides).where(eq(rides.busId, id)).limit(1);
-  if (associatedRides.length > 0) {
-    throw new BadRequest("Cannot delete bus: there are rides associated with this bus. Please delete or reassign the rides first.");
-  }
+  // Check if bus has associated rides - Rides model is currently removed from query
 
   // حذف الصور من السيرفر
   if (existingBus[0].licenseImage) {
@@ -434,11 +374,6 @@ export const deleteBus = async (req: Request, res: Response) => {
 export const updateBusStatus = async (req: Request, res: Response) => {
   const { id } = req.params;
   const { status } = req.body;
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
 
   if (!status) {
     throw new BadRequest("Status is required");
@@ -453,7 +388,7 @@ export const updateBusStatus = async (req: Request, res: Response) => {
   const existingBus = await db
     .select()
     .from(buses)
-    .where(and(eq(buses.id, id), eq(buses.organizationId, organizationId)))
+    .where(eq(buses.id, id))
     .limit(1);
 
   if (!existingBus[0]) {
@@ -468,11 +403,6 @@ export const updateBusStatus = async (req: Request, res: Response) => {
 // ✅ Get Buses By Status
 export const getBusesByStatus = async (req: Request, res: Response) => {
   const { status } = req.params;
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
 
   if (!["active", "inactive", "maintenance"].includes(status)) {
     throw new BadRequest(
@@ -497,12 +427,7 @@ export const getBusesByStatus = async (req: Request, res: Response) => {
     })
     .from(buses)
     .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id))
-    .where(
-      and(
-        eq(buses.organizationId, organizationId),
-        eq(buses.status, status as "active" | "inactive" | "maintenance")
-      )
-    );
+    .where(eq(buses.status, status as "active" | "inactive" | "maintenance"));
 
   SuccessResponse(
     res,
@@ -517,17 +442,10 @@ export const getBusesByStatus = async (req: Request, res: Response) => {
 
 // ✅ Get Bus Statistics (جديد)
 export const getBusStatistics = async (req: Request, res: Response) => {
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new BadRequest("Organization ID is required");
-  }
-
   // عدد الباصات حسب الحالة
   const allBuses = await db
     .select({ status: buses.status })
-    .from(buses)
-    .where(eq(buses.organizationId, organizationId));
+    .from(buses);
 
   const stats = {
     total: allBuses.length,
@@ -536,30 +454,14 @@ export const getBusStatistics = async (req: Request, res: Response) => {
     maintenance: allBuses.filter((b) => b.status === "maintenance").length,
   };
 
-  // معلومات الاشتراك
-  const subscription = await getActiveSubscription(organizationId);
-  const subscriptionInfo = subscription
-    ? {
-      planName: subscription.plan.name,
-      maxBuses: subscription.plan.maxBuses,
-      used: stats.total,
-      remaining: subscription.plan.maxBuses
-        ? subscription.plan.maxBuses - stats.total
-        : "unlimited",
-      expiresAt: subscription.subscription.endDate,
-    }
-    : null;
-
   SuccessResponse(
     res,
     {
       statistics: stats,
-      subscription: subscriptionInfo,
     },
     200
   );
 };
-
 
 export const getBusTypes = async (req: Request, res: Response) => {
   const allBusTypes = await db.select().from(busTypes);
@@ -572,11 +474,6 @@ export const getBusTypes = async (req: Request, res: Response) => {
 // ============================================
 export const getBusDetails = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const organizationId = req.user?.organizationId;
-
-  if (!organizationId) {
-    throw new NotFound("Organization not found");
-  }
 
   // 1) بيانات الباص الأساسية مع Bus Type
   const [bus] = await db
@@ -598,146 +495,16 @@ export const getBusDetails = async (req: Request, res: Response) => {
     })
     .from(buses)
     .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id))
-    .where(
-      and(
-        eq(buses.id, id),
-        eq(buses.organizationId, organizationId)
-      )
-    )
+    .where(eq(buses.id, id))
     .limit(1);
 
   if (!bus) {
     throw new NotFound("Bus not found");
   }
 
-  // 2) الرحلات المرتبطة بالباص مع السائق والمشرف
-  const busRides = await db
-    .select({
-      rideId: rides.id,
-      rideName: rides.name,
-      rideType: rides.rideType,
-      rideStatus: rides.status,
-      rideIsActive: rides.isActive,
-      startDate: rides.startDate,
-      endDate: rides.endDate,
-      frequency: rides.frequency,
-      // Driver
-      driverId: drivers.id,
-      driverName: drivers.name,
-      driverPhone: drivers.phone,
-      driverAvatar: drivers.avatar,
-      // Codriver
-      codriverId: codrivers.id,
-      codriverName: codrivers.name,
-      codriverPhone: codrivers.phone,
-      codriverAvatar: codrivers.avatar,
-      // Route
-      routeId: Rout.id,
-      routeName: Rout.name,
-    })
-    .from(rides)
-    .leftJoin(drivers, eq(rides.driverId, drivers.id))
-    .leftJoin(codrivers, eq(rides.codriverId, codrivers.id))
-    .leftJoin(Rout, eq(rides.routeId, Rout.id))
-    .where(eq(rides.busId, id));
-
-  // 3) الطلاب في هذا الباص
-  const busStudents = await db
-    .select({
-      studentId: students.id,
-      studentName: students.name,
-      studentCode: students.code,
-      studentAvatar: students.avatar,
-      studentGrade: students.grade,
-      studentClassroom: students.classroom,
-      studentStatus: students.status,
-      pickupTime: rideStudents.pickupTime,
-      rideId: rides.id,
-      rideName: rides.name,
-      rideType: rides.rideType,
-      // Pickup Point
-      pickupPointId: pickupPoints.id,
-      pickupPointName: pickupPoints.name,
-      // Parent
-      parentId: parents.id,
-      parentName: parents.name,
-      parentPhone: parents.phone,
-    })
-    .from(rideStudents)
-    .innerJoin(rides, eq(rideStudents.rideId, rides.id))
-    .innerJoin(students, eq(rideStudents.studentId, students.id))
-    .leftJoin(parents, eq(students.parentId, parents.id))
-    .leftJoin(pickupPoints, eq(rideStudents.pickupPointId, pickupPoints.id))
-    .where(eq(rides.busId, id));
-
-  // 4) الرحلات القادمة (7 أيام)
-  const today = new Date(new Date().toISOString().split('T')[0]);
-  const nextWeek = new Date(new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]);
-
-  const upcomingOccurrences = await db
-    .select({
-      occurrenceId: rideOccurrences.id,
-      date: rideOccurrences.occurDate,
-      status: rideOccurrences.status,
-      startedAt: rideOccurrences.startedAt,
-      rideId: rides.id,
-      rideName: rides.name,
-      rideType: rides.rideType,
-      driverName: drivers.name,
-      driverPhone: drivers.phone,
-    })
-    .from(rideOccurrences)
-    .innerJoin(rides, eq(rideOccurrences.rideId, rides.id))
-    .leftJoin(drivers, eq(rides.driverId, drivers.id))
-    .where(
-      and(
-        eq(rides.busId, id),
-        gte(rideOccurrences.occurDate, today),
-        lte(rideOccurrences.occurDate, nextWeek)
-      )
-    )
-    .orderBy(rideOccurrences.occurDate)
-    .limit(20);
-
-  // 5) سجل الرحلات (آخر 30 يوم)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const rideHistory = await db
-    .select({
-      occurrenceId: rideOccurrences.id,
-      date: rideOccurrences.occurDate,
-      status: rideOccurrences.status,
-      startedAt: rideOccurrences.startedAt,
-      completedAt: rideOccurrences.completedAt,
-      rideName: rides.name,
-      rideType: rides.rideType,
-      driverName: drivers.name,
-    })
-    .from(rideOccurrences)
-    .innerJoin(rides, eq(rideOccurrences.rideId, rides.id))
-    .leftJoin(drivers, eq(rides.driverId, drivers.id))
-    .where(
-      and(
-        eq(rides.busId, id),
-        gte(rideOccurrences.occurDate, new Date(thirtyDaysAgo.toISOString().split('T')[0]))
-      )
-    )
-    .orderBy(desc(rideOccurrences.occurDate))
-    .limit(50);
-
-  // 6) إحصائيات
-  const uniqueStudents = [...new Set(busStudents.map(s => s.studentId))];
+  // 6) إحصائيات مبسطة (لعدم وجود الجداول الأخرى)
   const stats = {
-    totalRides: busRides.length,
-    activeRides: busRides.filter(r => r.rideIsActive === 'on').length,
-    totalStudents: uniqueStudents.length,
     maxSeats: bus.maxSeats,
-    availableSeats: bus.maxSeats - uniqueStudents.length,
-    capacityPercentage: Math.round((uniqueStudents.length / bus.maxSeats) * 100),
-    completedTripsThisMonth: rideHistory.filter(r => r.status === 'completed').length,
-    inProgressTrips: rideHistory.filter(r => r.status === 'in_progress').length,
-    cancelledTrips: rideHistory.filter(r => r.status === 'cancelled').length,
     // حالة الرخصة
     licenseStatus: bus.licenseExpiryDate
       ? new Date(bus.licenseExpiryDate) > new Date()
@@ -770,83 +537,6 @@ export const getBusDetails = async (req: Request, res: Response) => {
           maxSeats: bus.maxSeats,
         } : null,
       },
-      rides: busRides.map(r => ({
-        id: r.rideId,
-        name: r.rideName,
-        type: r.rideType,
-        status: r.rideStatus,
-        isActive: r.rideIsActive,
-        frequency: r.frequency,
-        startDate: r.startDate,
-        endDate: r.endDate,
-        route: r.routeId ? {
-          id: r.routeId,
-          name: r.routeName,
-        } : null,
-        driver: r.driverId ? {
-          id: r.driverId,
-          name: r.driverName,
-          phone: r.driverPhone,
-          avatar: r.driverAvatar,
-        } : null,
-        codriver: r.codriverId ? {
-          id: r.codriverId,
-          name: r.codriverName,
-          phone: r.codriverPhone,
-          avatar: r.codriverAvatar,
-        } : null,
-      })),
-      students: busStudents.map(s => ({
-        id: s.studentId,
-        name: s.studentName,
-        code: s.studentCode,
-        avatar: s.studentAvatar,
-        grade: s.studentGrade,
-        classroom: s.studentClassroom,
-        status: s.studentStatus,
-        pickupTime: s.pickupTime,
-        pickupPoint: s.pickupPointId ? {
-          id: s.pickupPointId,
-          name: s.pickupPointName,
-        } : null,
-        ride: {
-          id: s.rideId,
-          name: s.rideName,
-          type: s.rideType,
-        },
-        parent: s.parentId ? {
-          id: s.parentId,
-          name: s.parentName,
-          phone: s.parentPhone,
-        } : null,
-      })),
-      upcomingRides: upcomingOccurrences.map(r => ({
-        occurrenceId: r.occurrenceId,
-        date: r.date,
-        status: r.status,
-        startedAt: r.startedAt,
-        ride: {
-          id: r.rideId,
-          name: r.rideName,
-          type: r.rideType,
-        },
-        driver: {
-          name: r.driverName,
-          phone: r.driverPhone,
-        },
-      })),
-      rideHistory: rideHistory.map(r => ({
-        id: r.occurrenceId,
-        date: r.date,
-        status: r.status,
-        startedAt: r.startedAt,
-        completedAt: r.completedAt,
-        ride: {
-          name: r.rideName,
-          type: r.rideType,
-        },
-        driver: r.driverName,
-      })),
       stats,
     },
     200

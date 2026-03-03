@@ -5,7 +5,7 @@ import { db } from "../../models/db";
 import { admins, roles } from "../../models/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
-import { generateOrganizerToken, generateAdminToken } from "../../utils/auth";
+import { generateSuperAdminToken, generateAdminToken } from "../../utils/auth";
 import { UnauthorizedError } from "../../Errors";
 import { SuccessResponse } from "../../utils/response";
 import { Permission } from "../../types/custom";
@@ -13,27 +13,27 @@ import { Permission } from "../../types/custom";
 // ✅ Helper function لتحويل الـ permissions (معالجة Double Escape)
 function parsePermissions(permissions: any): Permission[] {
   if (!permissions) return [];
-  
+
   // لو Array جاهز
   if (Array.isArray(permissions)) return permissions;
-  
+
   // لو String
   if (typeof permissions === "string") {
     try {
       let parsed = JSON.parse(permissions);
-      
+
       // ✅ لو لسه String بعد الـ parse (Double Escaped)
       while (typeof parsed === "string") {
         parsed = JSON.parse(parsed);
       }
-      
+
       return Array.isArray(parsed) ? parsed : [];
     } catch (error) {
       console.error("Error parsing permissions:", error);
       return [];
     }
   }
-  
+
   return [];
 }
 
@@ -66,8 +66,8 @@ export async function login(req: Request, res: Response) {
   let role = null;
   let permissions: Permission[] = [];
 
-  if (admin[0].type === "organizer") {
-    // الـ Organizer له كل الصلاحيات
+  if (admin[0].type === "superadmin") {
+    // الـ SuperAdmin له كل الصلاحيات
     permissions = [];
   } else if (admin[0].roleId) {
     const roleData = await db
@@ -85,11 +85,7 @@ export async function login(req: Request, res: Response) {
     }
   }
 
-  // دمج صلاحيات الـ Admin الإضافية
-  const adminPermissions = parsePermissions(admin[0].permissions);
-  if (adminPermissions.length > 0) {
-    permissions = mergePermissions(permissions, adminPermissions);
-  }
+
 
   // 5) إنشاء التوكن
   const tokenPayload = {
@@ -97,12 +93,11 @@ export async function login(req: Request, res: Response) {
     type: admin[0].type,
     email: admin[0].email,
     name: admin[0].name,
-    organizationId: admin[0].organizationId,
   };
 
   const token =
-    admin[0].type === "organizer"
-      ? generateOrganizerToken(tokenPayload)
+    admin[0].type === "superadmin"
+      ? generateSuperAdminToken(tokenPayload)
       : generateAdminToken(tokenPayload);
 
   // 6) الرد
@@ -118,7 +113,6 @@ export async function login(req: Request, res: Response) {
         phone: admin[0].phone,
         avatar: admin[0].avatar,
         type: admin[0].type,
-        organizationId: admin[0].organizationId,
         role,
         permissions,
       },

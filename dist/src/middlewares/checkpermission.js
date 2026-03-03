@@ -45,8 +45,8 @@ const checkPermission = (module, action) => {
             if (!user) {
                 throw new Errors_1.UnauthorizedError("Authentication required");
             }
-            // SuperAdmin و Organizer عندهم كل الصلاحيات
-            if (user.role === "superadmin" || user.role === "organizer") {
+            // SuperAdmin عنده كل الصلاحيات
+            if (user.role === "superadmin") {
                 return next();
             }
             // للـ Admin - نتحقق من الصلاحيات
@@ -77,20 +77,19 @@ const hasSuperAdminPermission = (permissions, module, action) => {
     }
     return modulePermission.actions.some((a) => a.action === action);
 };
-// جلب الـ Permissions للـ SubAdmin
 const getSubAdminPermissions = async (subAdminId) => {
     const subAdmin = await db_1.db
-        .select({ roleId: schema_1.superAdmins.roleId })
-        .from(schema_1.superAdmins)
-        .where((0, drizzle_orm_1.eq)(schema_1.superAdmins.id, subAdminId))
+        .select()
+        .from(schema_1.admins)
+        .where((0, drizzle_orm_1.eq)(schema_1.admins.id, subAdminId))
         .limit(1);
     if (!subAdmin[0] || !subAdmin[0].roleId) {
         throw new Errors_1.ForbiddenError("No role assigned to this SubAdmin");
     }
     const role = await db_1.db
-        .select({ permissions: schema_1.superAdminRoles.permissions })
-        .from(schema_1.superAdminRoles)
-        .where((0, drizzle_orm_1.eq)(schema_1.superAdminRoles.id, subAdmin[0].roleId))
+        .select()
+        .from(schema_1.roles)
+        .where((0, drizzle_orm_1.eq)(schema_1.roles.id, subAdmin[0].roleId))
         .limit(1);
     if (!role[0]) {
         throw new Errors_1.ForbiddenError("Role not found");

@@ -52,3 +52,13 @@ const pool = promise_1.default.createPool({
 });
 exports.pool = pool;
 exports.db = (0, mysql2_1.drizzle)(pool, { schema, mode: "default" });
+// Test database connection
+pool.getConnection()
+    .then((connection) => {
+    console.log("✅ Database connected successfully.");
+    connection.release();
+})
+    .catch((err) => {
+    console.error("❌ Failed to connect to the database:");
+    console.error(err);
+});

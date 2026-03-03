@@ -5,7 +5,7 @@ import { ModuleName, ActionName } from "../types/constant";
 import { Permission } from "../types/custom";
 
 import { db } from "../models/db";
-import { admins, roles, superAdminRoles, superAdmins } from "../models/schema";
+import { admins, roles } from "../models/schema";
 import { eq } from "drizzle-orm";
 import { ForbiddenError, UnauthorizedError } from "../Errors";
 
@@ -62,8 +62,8 @@ export const checkPermission = (module: ModuleName, action?: ActionName) => {
                 throw new UnauthorizedError("Authentication required");
             }
 
-            // SuperAdmin و Organizer عندهم كل الصلاحيات
-            if (user.role === "superadmin" || user.role === "organizer") {
+            // SuperAdmin عنده كل الصلاحيات
+            if (user.role === "superadmin") {
                 return next();
             }
 
@@ -109,12 +109,11 @@ const hasSuperAdminPermission = (
     return modulePermission.actions.some((a) => a.action === action);
 };
 
-// جلب الـ Permissions للـ SubAdmin
 const getSubAdminPermissions = async (subAdminId: string): Promise<SuperAdminPermission[]> => {
     const subAdmin = await db
-        .select({ roleId: superAdmins.roleId })
-        .from(superAdmins)
-        .where(eq(superAdmins.id, subAdminId))
+        .select()
+        .from(admins)
+        .where(eq(admins.id, subAdminId))
         .limit(1);
 
     if (!subAdmin[0] || !subAdmin[0].roleId) {
@@ -122,16 +121,16 @@ const getSubAdminPermissions = async (subAdminId: string): Promise<SuperAdminPer
     }
 
     const role = await db
-        .select({ permissions: superAdminRoles.permissions })
-        .from(superAdminRoles)
-        .where(eq(superAdminRoles.id, subAdmin[0].roleId))
+        .select()
+        .from(roles)
+        .where(eq(roles.id, subAdmin[0].roleId))
         .limit(1);
 
     if (!role[0]) {
         throw new ForbiddenError("Role not found");
     }
 
-    return role[0].permissions as SuperAdminPermission[];
+    return role[0].permissions as unknown as SuperAdminPermission[];
 };
 
 // ✅ Middleware للتحقق من صلاحيات SuperAdmin/SubAdmin

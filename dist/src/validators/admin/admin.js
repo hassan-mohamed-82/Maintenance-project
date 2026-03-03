@@ -28,7 +28,7 @@ exports.createAdminSchema = zod_1.z.object({
             .uuid("Invalid Role ID")
             .optional(),
         type: zod_1.z
-            .enum(["organizer", "admin"])
+            .enum(["superadmin", "admin"])
             .default("admin"),
     }),
 });
@@ -67,10 +67,10 @@ exports.updateAdminSchema = zod_1.z.object({
             .optional()
             .nullable(),
         type: zod_1.z
-            .enum(["organizer", "admin"])
+            .enum(["superadmin", "admin"])
             .optional(),
         status: zod_1.z
-            .enum(["active", "inactive"])
+            .enum(["active", "inactive", "maintenance"])
             .optional(),
     }),
 });

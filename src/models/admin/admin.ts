@@ -13,14 +13,9 @@ import {
 import { sql } from "drizzle-orm";
 import { roles } from "./roles";
 import { Permission } from "../../types/custom";
-import { organizations } from "../superadmin/organization";
-
 export const admins = mysqlTable("admins", {
   id: char("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
-  
-  // الـ Organization اللي تابع ليها
-  organizationId: char("organization_id", { length: 36 }).notNull().references(() => organizations.id ,{ onDelete: "cascade" }), //cascade delete added when deleting organization
-  
+    
   // الـ Role (اختياري - للـ Admin العادي)
   roleId: char("role_id", { length: 36 }).references(() => roles.id),
 
@@ -31,12 +26,7 @@ export const admins = mysqlTable("admins", {
   avatar: varchar("avatar", { length: 500 }),
 
   // النوع: organizer أو admin
-  type: mysqlEnum("type", ["organizer", "admin"]).notNull().default("admin"),
-  
-  // صلاحيات إضافية (override)
-  permissions: json("permissions").$type<Permission[]>().default([]),
-   
-fcmTokens: text("fcm_tokens"), // JSON array of FCM tokens
+  type: mysqlEnum("type", ["superadmin", "admin"]).notNull().default("admin"),
   status: mysqlEnum("status", ["active", "inactive"]).default("active"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),

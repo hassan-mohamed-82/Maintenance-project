@@ -7,12 +7,12 @@ import dotenv from "dotenv";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
-import { startCronJobs } from "./jobs/cronJobs";
 import http from "http";
 import { Server } from "socket.io";
-import { initSocket } from "./socket";
 
 dotenv.config();
+
+// startCronJobs();
 
 const app = express();
 
@@ -23,8 +23,6 @@ const io = new Server(httpServer, {
     methods: ["GET", "POST"]
   }
 });
-
-initSocket(io);
 
 // ✅ CORS بدون app.options
 app.use(cors({
@@ -57,7 +55,6 @@ app.use((req, res, next) => {
 
 app.use(errorHandler);
 
-startCronJobs();
 
 httpServer.listen(3000, () => {
   console.log("Server is running on http://localhost:3000");

@@ -9,18 +9,12 @@ import { NotFound } from "../../Errors/NotFound";
 import { BadRequest } from "../../Errors/BadRequest";
 import bcrypt from "bcrypt";
 
-// ✅ Get All Admins (للـ Organization الحالية)
+// ✅ Get All Admins
 export const getAllAdmins = async (req: Request, res: Response) => {
-    const organizationId = req.user?.organizationId;
-
-    if (!organizationId) {
-        throw new BadRequest("Organization ID is required");
-    }
 
     const allAdmins = await db
         .select({
             id: admins.id,
-            organizationId: admins.organizationId,
             roleId: admins.roleId,
             name: admins.name,
             email: admins.email,
@@ -31,8 +25,7 @@ export const getAllAdmins = async (req: Request, res: Response) => {
             createdAt: admins.createdAt,
             updatedAt: admins.updatedAt,
         })
-        .from(admins)
-        .where(eq(admins.organizationId, organizationId));
+        .from(admins);
 
     SuccessResponse(res, { admins: allAdmins }, 200);
 };
@@ -40,22 +33,15 @@ export const getAllAdmins = async (req: Request, res: Response) => {
 // ✅ Get Admin By ID (مع الـ Role Details)
 export const getAdminById = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const organizationId = req.user?.organizationId;
-
-    if (!organizationId) {
-        throw new BadRequest("Organization ID is required");
-    }
 
     const admin = await db
         .select({
             id: admins.id,
-            organizationId: admins.organizationId,
             name: admins.name,
             email: admins.email,
             phone: admins.phone,
             avatar: admins.avatar,
             type: admins.type,
-            permissions: admins.permissions,
             status: admins.status,
             createdAt: admins.createdAt,
             updatedAt: admins.updatedAt,
@@ -67,7 +53,7 @@ export const getAdminById = async (req: Request, res: Response) => {
         })
         .from(admins)
         .leftJoin(roles, eq(admins.roleId, roles.id))
-        .where(and(eq(admins.id, id), eq(admins.organizationId, organizationId)))
+        .where(eq(admins.id, id))
         .limit(1);
 
     if (!admin[0]) {
@@ -81,11 +67,6 @@ export const getAdminById = async (req: Request, res: Response) => {
 // ✅ Create Admin
 export const createAdmin = async (req: Request, res: Response) => {
     const { name, email, password, phone, avatar, roleId, type } = req.body;
-    const organizationId = req.user?.organizationId;
-
-    if (!organizationId) {
-        throw new BadRequest("Organization ID is required");
-    }
 
     // تحقق من عدم وجود admin بنفس الـ email
     const existingAdmin = await db
@@ -115,7 +96,6 @@ export const createAdmin = async (req: Request, res: Response) => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await db.insert(admins).values({
-        organizationId,
         name,
         email,
         password: hashedPassword,
@@ -132,17 +112,12 @@ export const createAdmin = async (req: Request, res: Response) => {
 export const updateAdmin = async (req: Request, res: Response) => {
     const { id } = req.params;
     const { name, email, password, phone, avatar, roleId, type, status } = req.body;
-    const organizationId = req.user?.organizationId;
-
-    if (!organizationId) {
-        throw new BadRequest("Organization ID is required");
-    }
 
     // تحقق من وجود الـ Admin
     const existingAdmin = await db
         .select()
         .from(admins)
-        .where(and(eq(admins.id, id), eq(admins.organizationId, organizationId)))
+        .where(eq(admins.id, id))
         .limit(1);
 
     if (!existingAdmin[0]) {
@@ -199,12 +174,7 @@ export const updateAdmin = async (req: Request, res: Response) => {
 // ✅ Delete Admin
 export const deleteAdmin = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const organizationId = req.user?.organizationId;
     const currentUserId = req.user?.id;
-
-    if (!organizationId) {
-        throw new BadRequest("Organization ID is required");
-    }
 
     // منع حذف النفس
     if (id === currentUserId) {
@@ -214,7 +184,7 @@ export const deleteAdmin = async (req: Request, res: Response) => {
     const existingAdmin = await db
         .select()
         .from(admins)
-        .where(and(eq(admins.id, id), eq(admins.organizationId, organizationId)))
+        .where(eq(admins.id, id))
         .limit(1);
 
     if (!existingAdmin[0]) {
@@ -231,15 +201,15 @@ export const deleteAdmin = async (req: Request, res: Response) => {
 
 // ✅ Get Role Names Only
 export const getRoleNames = async (req: Request, res: Response) => {
-  const allRoles = await db
-    .select({
-      id: roles.id,
-      name: roles.name,
-    })
-    .from(roles)
-    .where(eq(roles.status, "active")); // الـ Active بس
+    const allRoles = await db
+        .select({
+            id: roles.id,
+            name: roles.name,
+        })
+        .from(roles)
+        .where(eq(roles.status, "active")); // الـ Active بس
 
-  return SuccessResponse(res, { roles: allRoles }, 200);
+    return SuccessResponse(res, { roles: allRoles }, 200);
 };
 
 

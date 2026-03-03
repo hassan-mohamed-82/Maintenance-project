@@ -6,7 +6,6 @@ const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
 exports.busTypes = (0, mysql_core_1.mysqlTable)("bus_types", {
     id: (0, mysql_core_1.char)("id", { length: 36 }).primaryKey().default((0, drizzle_orm_1.sql) `(UUID())`),
-    // organizationId: char("organization_id", { length: 36 }).notNull(),
     name: (0, mysql_core_1.varchar)("name", { length: 100 }).notNull(),
     capacity: (0, mysql_core_1.int)("capacity").notNull(),
     description: (0, mysql_core_1.varchar)("description", { length: 255 }),

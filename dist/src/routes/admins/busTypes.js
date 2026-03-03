@@ -1,7 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
-const busTypes_1 = require("../../controllers/superadmin/busTypes");
+const busTypes_1 = require("../../controllers/admin/busTypes");
 const validation_1 = require("../../middlewares/validation");
 const busTypes_2 = require("../../validators/admin/busTypes");
 const catchAsync_1 = require("../../utils/catchAsync");
