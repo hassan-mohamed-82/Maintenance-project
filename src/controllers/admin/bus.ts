@@ -2,14 +2,13 @@
 
 import { Request, Response } from "express";
 import { db } from "../../models/db";
-import { buses, busTypes, codrivers, drivers, parents, pickupPoints, rideOccurrences, rides, rideStudents, Rout, students } from "../../models/schema";
+import { buses, busTypes } from "../../models/schema";
 import { eq, and, count, desc, gte, lte } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 import { NotFound } from "../../Errors/NotFound";
 import { BadRequest } from "../../Errors/BadRequest";
 import { saveBase64Image } from "../../utils/handleImages";
 import { deletePhotoFromServer } from "../../utils/deleteImage";
-import { checkBusLimit, getActiveSubscription } from "../../utils/helperfunction";
 import { v4 as uuidv4 } from "uuid";
 
 export const getAllBuses = async (req: Request, res: Response) => {
