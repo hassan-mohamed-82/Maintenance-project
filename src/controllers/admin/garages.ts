@@ -7,14 +7,15 @@ import { eq, desc, and } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 import { NotFound } from "../../Errors/NotFound";
 import { BadRequest } from "../../Errors/BadRequest";
+import zone from "../../routes/admins/zone";
 
 // ✅ Create Garage
 export const createGarage = async (req: Request, res: Response) => {
-  const { name, cityId, zoneId } = req.body;
+  const { name, cityId, location } = req.body;
 
   if (!name) throw new BadRequest("name is required");
   if (!cityId) throw new BadRequest("cityId is required");
-  if (!zoneId) throw new BadRequest("zoneId is required");
+  if (!location) throw new BadRequest("location is required");
 
   // تحقق من وجود المدينة
   const city = await db
@@ -26,19 +27,10 @@ export const createGarage = async (req: Request, res: Response) => {
   if (city.length === 0) {
     throw new NotFound("City not found");
   }
+  
 
-  // تحقق من وجود المنطقة
-  const zone = await db
-    .select()
-    .from(zones)
-    .where(eq(zones.id, zoneId))
-    .limit(1);
 
-  if (zone.length === 0) {
-    throw new NotFound("Zone not found");
-  }
-
-  await db.insert(garages).values({ name, cityId, zoneId });
+  await db.insert(garages).values({ name, cityId,location });
 
   return SuccessResponse(res, { message: "Garage created successfully" }, 201);
 };
@@ -51,9 +43,6 @@ export const getGarages = async (req: Request, res: Response) => {
   const conditions = [];
   if (cityId && typeof cityId === "string") {
     conditions.push(eq(garages.cityId, cityId));
-  }
-  if (zoneId && typeof zoneId === "string") {
-    conditions.push(eq(garages.zoneId, zoneId));
   }
 
   const garageList = await db
@@ -72,7 +61,6 @@ export const getGarages = async (req: Request, res: Response) => {
     })
     .from(garages)
     .leftJoin(cities, eq(garages.cityId, cities.id))
-    .leftJoin(zones, eq(garages.zoneId, zones.id))
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(garages.createdAt));
 
@@ -98,7 +86,6 @@ export const getGarageById = async (req: Request, res: Response) => {
     })
     .from(garages)
     .leftJoin(cities, eq(garages.cityId, cities.id))
-    .leftJoin(zones, eq(garages.zoneId, zones.id))
     .where(eq(garages.id, id))
     .limit(1);
 
@@ -112,7 +99,7 @@ export const getGarageById = async (req: Request, res: Response) => {
 // ✅ Update Garage
 export const updateGarage = async (req: Request, res: Response) => {
   const { id } = req.params;
-  const { name, cityId, zoneId } = req.body;
+  const { name, cityId, location } = req.body;
 
   const garage = await db
     .select()
@@ -136,24 +123,17 @@ export const updateGarage = async (req: Request, res: Response) => {
     }
   }
 
-  if (zoneId) {
-    const zone = await db
-      .select()
-      .from(zones)
-      .where(eq(zones.id, zoneId))
-      .limit(1);
 
-    if (zone.length === 0) {
-      throw new NotFound("Zone not found");
+    if (location.length === 0) {
+      throw new NotFound("location is required");
     }
-  }
 
   await db
     .update(garages)
     .set({
       name: name || garage[0].name,
       cityId: cityId || garage[0].cityId,
-      zoneId: zoneId || garage[0].zoneId,
+      location: location || garage[0].location,
     })
     .where(eq(garages.id, id));
 
@@ -179,18 +159,6 @@ export const deleteGarage = async (req: Request, res: Response) => {
   return SuccessResponse(res, { message: "Garage deleted successfully" }, 200);
 };
 
-// ✅ Get Garages Selection
-export const getGaragesSelection = async (req: Request, res: Response) => {
-  const garageList = await db
-    .select({
-      id: garages.id,
-      name: garages.name,
-    })
-    .from(garages)
-    .orderBy(garages.name);
-
-  return SuccessResponse(res, { garages: garageList }, 200);
-};
 
 export const getCitiesWithZones = async (req: Request, res: Response) => {
   // جلب كل المدن
@@ -199,28 +167,9 @@ export const getCitiesWithZones = async (req: Request, res: Response) => {
     .from(cities)
     .orderBy(desc(cities.createdAt));
 
-  // جلب كل المناطق
-  const zoneList = await db
-    .select({
-      id: zones.id,
-      name: zones.name,
-      cityId: zones.cityId,
-    })
-    .from(zones)
-    .orderBy(zones.name);
-
-  // تجميع المناطق مع المدن
-  const citiesWithZones = cityList.map((city) => ({
-    id: city.id,
-    name: city.name,
-    createdAt: city.createdAt,
-    zones: zoneList.filter((zone) => zone.cityId === city.id),
-    zonesCount: zoneList.filter((zone) => zone.cityId === city.id).length,
-  }));
+  
 
   return SuccessResponse(res, {
-    cities: citiesWithZones,
-    totalCities: cityList.length,
-    totalZones: zoneList.length,
+    totalCities: cityList.length
   }, 200);
 };

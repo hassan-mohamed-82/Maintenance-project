@@ -78,6 +78,20 @@
       "when": 1772613176775,
       "tag": "0010_fearless_luminals",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1772615068347,
+      "tag": "0011_burly_the_hand",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "5",
+      "when": 1772617916743,
+      "tag": "0012_military_snowbird",
+      "breakpoints": true
     }
   ]
 }

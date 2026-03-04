@@ -1,7 +1,7 @@
 "use strict";
 // src/controllers/admin/garages.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCitiesWithZones = exports.getGaragesSelection = exports.deleteGarage = exports.updateGarage = exports.getGarageById = exports.getGarages = exports.createGarage = void 0;
+exports.getCitiesWithZones = exports.deleteGarage = exports.updateGarage = exports.getGarageById = exports.getGarages = exports.createGarage = void 0;
 const db_1 = require("../../models/db");
 const schema_1 = require("../../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -10,13 +10,13 @@ const NotFound_1 = require("../../Errors/NotFound");
 const BadRequest_1 = require("../../Errors/BadRequest");
 // ✅ Create Garage
 const createGarage = async (req, res) => {
-    const { name, cityId, zoneId } = req.body;
+    const { name, cityId, location } = req.body;
     if (!name)
         throw new BadRequest_1.BadRequest("name is required");
     if (!cityId)
         throw new BadRequest_1.BadRequest("cityId is required");
-    if (!zoneId)
-        throw new BadRequest_1.BadRequest("zoneId is required");
+    if (!location)
+        throw new BadRequest_1.BadRequest("location is required");
     // تحقق من وجود المدينة
     const city = await db_1.db
         .select()
@@ -26,16 +26,7 @@ const createGarage = async (req, res) => {
     if (city.length === 0) {
         throw new NotFound_1.NotFound("City not found");
     }
-    // تحقق من وجود المنطقة
-    const zone = await db_1.db
-        .select()
-        .from(schema_1.zones)
-        .where((0, drizzle_orm_1.eq)(schema_1.zones.id, zoneId))
-        .limit(1);
-    if (zone.length === 0) {
-        throw new NotFound_1.NotFound("Zone not found");
-    }
-    await db_1.db.insert(schema_1.garages).values({ name, cityId, zoneId });
+    await db_1.db.insert(schema_1.garages).values({ name, cityId, location });
     return (0, response_1.SuccessResponse)(res, { message: "Garage created successfully" }, 201);
 };
 exports.createGarage = createGarage;
@@ -46,9 +37,6 @@ const getGarages = async (req, res) => {
     const conditions = [];
     if (cityId && typeof cityId === "string") {
         conditions.push((0, drizzle_orm_1.eq)(schema_1.garages.cityId, cityId));
-    }
-    if (zoneId && typeof zoneId === "string") {
-        conditions.push((0, drizzle_orm_1.eq)(schema_1.garages.zoneId, zoneId));
     }
     const garageList = await db_1.db
         .select({
@@ -66,7 +54,6 @@ const getGarages = async (req, res) => {
     })
         .from(schema_1.garages)
         .leftJoin(schema_1.cities, (0, drizzle_orm_1.eq)(schema_1.garages.cityId, schema_1.cities.id))
-        .leftJoin(schema_1.zones, (0, drizzle_orm_1.eq)(schema_1.garages.zoneId, schema_1.zones.id))
         .where(conditions.length > 0 ? (0, drizzle_orm_1.and)(...conditions) : undefined)
         .orderBy((0, drizzle_orm_1.desc)(schema_1.garages.createdAt));
     return (0, response_1.SuccessResponse)(res, { garages: garageList }, 200);
@@ -91,7 +78,6 @@ const getGarageById = async (req, res) => {
     })
         .from(schema_1.garages)
         .leftJoin(schema_1.cities, (0, drizzle_orm_1.eq)(schema_1.garages.cityId, schema_1.cities.id))
-        .leftJoin(schema_1.zones, (0, drizzle_orm_1.eq)(schema_1.garages.zoneId, schema_1.zones.id))
         .where((0, drizzle_orm_1.eq)(schema_1.garages.id, id))
         .limit(1);
     if (garage.length === 0) {
@@ -103,7 +89,7 @@ exports.getGarageById = getGarageById;
 // ✅ Update Garage
 const updateGarage = async (req, res) => {
     const { id } = req.params;
-    const { name, cityId, zoneId } = req.body;
+    const { name, cityId, location } = req.body;
     const garage = await db_1.db
         .select()
         .from(schema_1.garages)
@@ -122,22 +108,15 @@ const updateGarage = async (req, res) => {
             throw new NotFound_1.NotFound("City not found");
         }
     }
-    if (zoneId) {
-        const zone = await db_1.db
-            .select()
-            .from(schema_1.zones)
-            .where((0, drizzle_orm_1.eq)(schema_1.zones.id, zoneId))
-            .limit(1);
-        if (zone.length === 0) {
-            throw new NotFound_1.NotFound("Zone not found");
-        }
+    if (location.length === 0) {
+        throw new NotFound_1.NotFound("location is required");
     }
     await db_1.db
         .update(schema_1.garages)
         .set({
         name: name || garage[0].name,
         cityId: cityId || garage[0].cityId,
-        zoneId: zoneId || garage[0].zoneId,
+        location: location || garage[0].location,
     })
         .where((0, drizzle_orm_1.eq)(schema_1.garages.id, id));
     return (0, response_1.SuccessResponse)(res, { message: "Garage updated successfully" }, 200);
@@ -158,45 +137,14 @@ const deleteGarage = async (req, res) => {
     return (0, response_1.SuccessResponse)(res, { message: "Garage deleted successfully" }, 200);
 };
 exports.deleteGarage = deleteGarage;
-// ✅ Get Garages Selection
-const getGaragesSelection = async (req, res) => {
-    const garageList = await db_1.db
-        .select({
-        id: schema_1.garages.id,
-        name: schema_1.garages.name,
-    })
-        .from(schema_1.garages)
-        .orderBy(schema_1.garages.name);
-    return (0, response_1.SuccessResponse)(res, { garages: garageList }, 200);
-};
-exports.getGaragesSelection = getGaragesSelection;
 const getCitiesWithZones = async (req, res) => {
     // جلب كل المدن
     const cityList = await db_1.db
         .select()
         .from(schema_1.cities)
         .orderBy((0, drizzle_orm_1.desc)(schema_1.cities.createdAt));
-    // جلب كل المناطق
-    const zoneList = await db_1.db
-        .select({
-        id: schema_1.zones.id,
-        name: schema_1.zones.name,
-        cityId: schema_1.zones.cityId,
-    })
-        .from(schema_1.zones)
-        .orderBy(schema_1.zones.name);
-    // تجميع المناطق مع المدن
-    const citiesWithZones = cityList.map((city) => ({
-        id: city.id,
-        name: city.name,
-        createdAt: city.createdAt,
-        zones: zoneList.filter((zone) => zone.cityId === city.id),
-        zonesCount: zoneList.filter((zone) => zone.cityId === city.id).length,
-    }));
     return (0, response_1.SuccessResponse)(res, {
-        cities: citiesWithZones,
-        totalCities: cityList.length,
-        totalZones: zoneList.length,
+        totalCities: cityList.length
     }, 200);
 };
 exports.getCitiesWithZones = getCitiesWithZones;

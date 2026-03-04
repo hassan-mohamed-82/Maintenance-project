@@ -6,8 +6,7 @@ export const garages = mysqlTable("garages", {
   id: char("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
   name: varchar("name", { length: 255 }).notNull(),
   cityId: char("city_id", { length: 36 }).notNull().references(() => cities.id),
-  zoneId: char("zone_id", { length: 36 }).notNull().references(() => zones.id),
-  
+  location: varchar("location", { length: 255 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow().onUpdateNow(),
 });

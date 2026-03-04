@@ -5,7 +5,6 @@ import {
   getGarageById,
   updateGarage,
   deleteGarage,
-  getGaragesSelection,
   getCitiesWithZones
 } from "../../controllers/admin/garages";
 import { catchAsync } from "../../utils/catchAsync";
@@ -15,9 +14,6 @@ const router = Router();
 
 // ✅ Create Garage
 router.post("/", catchAsync(createGarage));
-
-// ✅ Get All Garages Selection
-router.get("/selection", catchAsync(getGaragesSelection));
 
 // ✅ Get Cities With Zones Selection
 router.get("/cities-zones", catchAsync(getCitiesWithZones));

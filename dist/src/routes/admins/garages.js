@@ -6,8 +6,6 @@ const catchAsync_1 = require("../../utils/catchAsync");
 const router = (0, express_1.Router)();
 // ✅ Create Garage
 router.post("/", (0, catchAsync_1.catchAsync)(garages_1.createGarage));
-// ✅ Get All Garages Selection
-router.get("/selection", (0, catchAsync_1.catchAsync)(garages_1.getGaragesSelection));
 // ✅ Get Cities With Zones Selection
 router.get("/cities-zones", (0, catchAsync_1.catchAsync)(garages_1.getCitiesWithZones));
 // ✅ Get All Garages
