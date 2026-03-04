@@ -1,7 +1,7 @@
 "use strict";
 // src/controllers/admin/zoneController.ts
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteZone = exports.updateZone = exports.getZoneById = exports.getZones = exports.createZone = void 0;
+exports.getZonesSelection = exports.deleteZone = exports.updateZone = exports.getZoneById = exports.getZones = exports.createZone = void 0;
 const db_1 = require("../../models/db");
 const schema_1 = require("../../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -124,3 +124,22 @@ const deleteZone = async (req, res) => {
     return (0, response_1.SuccessResponse)(res, { message: "Zone deleted successfully" }, 200);
 };
 exports.deleteZone = deleteZone;
+// ✅ Get Zones Selection
+const getZonesSelection = async (req, res) => {
+    const { cityId } = req.query;
+    // Build where conditions
+    const conditions = [];
+    if (cityId && typeof cityId === "string") {
+        conditions.push((0, drizzle_orm_1.eq)(schema_1.zones.cityId, cityId));
+    }
+    const zoneList = await db_1.db
+        .select({
+        id: schema_1.zones.id,
+        name: schema_1.zones.name,
+    })
+        .from(schema_1.zones)
+        .where(conditions.length > 0 ? (0, drizzle_orm_1.and)(...conditions) : undefined)
+        .orderBy(schema_1.zones.name);
+    return (0, response_1.SuccessResponse)(res, { zones: zoneList }, 200);
+};
+exports.getZonesSelection = getZonesSelection;

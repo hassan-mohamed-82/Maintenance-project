@@ -10,3 +10,4 @@ export * from "./admin/Maintenance";
 export * from "./admin/city";
 export * from "./admin/zone";
 export * from "./admin/garages";
+export * from "./admin/Users";

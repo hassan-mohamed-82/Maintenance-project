@@ -269,39 +269,43 @@ export const updateBus = async (req: Request, res: Response) => {
   // التعامل مع صورة الرخصة
   let savedLicenseImage = bus.licenseImage;
   if (licenseImage !== undefined) {
-    if (licenseImage) {
+    if (licenseImage && typeof licenseImage === "string" && licenseImage.startsWith("data:")) {
+      // New base64 image uploaded
       const result = await saveBase64Image(req, licenseImage, "buses/licenses");
       // حذف الصورة القديمة بعد حفظ الجديدة بنجاح
       if (bus.licenseImage) {
         await deletePhotoFromServer(bus.licenseImage);
       }
       savedLicenseImage = result.url;
-    } else {
-      // حذف الصورة القديمة
+    } else if (!licenseImage) {
+      // Explicitly set to null/empty → delete old image
       if (bus.licenseImage) {
         await deletePhotoFromServer(bus.licenseImage);
       }
       savedLicenseImage = null;
     }
+    // Otherwise it's an existing URL string → keep as-is (no change needed)
   }
 
   // التعامل مع صورة الباص
   let savedBusImage = bus.busImage;
   if (busImage !== undefined) {
-    if (busImage) {
+    if (busImage && typeof busImage === "string" && busImage.startsWith("data:")) {
+      // New base64 image uploaded
       const result = await saveBase64Image(req, busImage, "buses/photos");
       // حذف الصورة القديمة بعد حفظ الجديدة بنجاح
       if (bus.busImage) {
         await deletePhotoFromServer(bus.busImage);
       }
       savedBusImage = result.url;
-    } else {
-      // حذف الصورة القديمة
+    } else if (!busImage) {
+      // Explicitly set to null/empty → delete old image
       if (bus.busImage) {
         await deletePhotoFromServer(bus.busImage);
       }
       savedBusImage = null;
     }
+    // Otherwise it's an existing URL string → keep as-is (no change needed)
   }
 
   await db

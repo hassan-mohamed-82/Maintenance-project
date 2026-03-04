@@ -218,7 +218,8 @@ const updateBus = async (req, res) => {
     // التعامل مع صورة الرخصة
     let savedLicenseImage = bus.licenseImage;
     if (licenseImage !== undefined) {
-        if (licenseImage) {
+        if (licenseImage && typeof licenseImage === "string" && licenseImage.startsWith("data:")) {
+            // New base64 image uploaded
             const result = await (0, handleImages_1.saveBase64Image)(req, licenseImage, "buses/licenses");
             // حذف الصورة القديمة بعد حفظ الجديدة بنجاح
             if (bus.licenseImage) {
@@ -226,18 +227,20 @@ const updateBus = async (req, res) => {
             }
             savedLicenseImage = result.url;
         }
-        else {
-            // حذف الصورة القديمة
+        else if (!licenseImage) {
+            // Explicitly set to null/empty → delete old image
             if (bus.licenseImage) {
                 await (0, deleteImage_1.deletePhotoFromServer)(bus.licenseImage);
             }
             savedLicenseImage = null;
         }
+        // Otherwise it's an existing URL string → keep as-is (no change needed)
     }
     // التعامل مع صورة الباص
     let savedBusImage = bus.busImage;
     if (busImage !== undefined) {
-        if (busImage) {
+        if (busImage && typeof busImage === "string" && busImage.startsWith("data:")) {
+            // New base64 image uploaded
             const result = await (0, handleImages_1.saveBase64Image)(req, busImage, "buses/photos");
             // حذف الصورة القديمة بعد حفظ الجديدة بنجاح
             if (bus.busImage) {
@@ -245,13 +248,14 @@ const updateBus = async (req, res) => {
             }
             savedBusImage = result.url;
         }
-        else {
-            // حذف الصورة القديمة
+        else if (!busImage) {
+            // Explicitly set to null/empty → delete old image
             if (bus.busImage) {
                 await (0, deleteImage_1.deletePhotoFromServer)(bus.busImage);
             }
             savedBusImage = null;
         }
+        // Otherwise it's an existing URL string → keep as-is (no change needed)
     }
     await db_1.db
         .update(schema_1.buses)

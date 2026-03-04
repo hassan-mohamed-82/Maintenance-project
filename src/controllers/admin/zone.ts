@@ -141,3 +141,25 @@ export const deleteZone = async (req: Request, res: Response) => {
 
   return SuccessResponse(res, { message: "Zone deleted successfully" }, 200);
 };
+
+// ✅ Get Zones Selection
+export const getZonesSelection = async (req: Request, res: Response) => {
+  const { cityId } = req.query;
+
+  // Build where conditions
+  const conditions = [];
+  if (cityId && typeof cityId === "string") {
+    conditions.push(eq(zones.cityId, cityId));
+  }
+
+  const zoneList = await db
+    .select({
+      id: zones.id,
+      name: zones.name,
+    })
+    .from(zones)
+    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .orderBy(zones.name);
+
+  return SuccessResponse(res, { zones: zoneList }, 200);
+};

@@ -16,6 +16,7 @@ const zone_1 = __importDefault(require("./zone"));
 const maintenanceTypes_1 = __importDefault(require("./maintenanceTypes"));
 const maintenances_1 = __importDefault(require("./maintenances"));
 const garages_1 = __importDefault(require("./garages"));
+const users_1 = __importDefault(require("./users"));
 const express_1 = require("express");
 const route = (0, express_1.Router)();
 route.use("/auth", (0, catchAsync_1.catchAsync)(auth_1.default));
@@ -29,4 +30,5 @@ route.use("/maintenances", (0, catchAsync_1.catchAsync)(maintenances_1.default))
 route.use("/cities", (0, catchAsync_1.catchAsync)(city_1.default));
 route.use("/zones", (0, catchAsync_1.catchAsync)(zone_1.default));
 route.use("/garages", (0, catchAsync_1.catchAsync)(garages_1.default));
+route.use("/users", (0, catchAsync_1.catchAsync)(users_1.default));
 exports.default = route;

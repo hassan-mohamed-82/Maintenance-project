@@ -24,3 +24,4 @@ __exportStar(require("./admin/Maintenance"), exports);
 __exportStar(require("./admin/city"), exports);
 __exportStar(require("./admin/zone"), exports);
 __exportStar(require("./admin/garages"), exports);
+__exportStar(require("./admin/Users"), exports);
