@@ -154,3 +154,9 @@ export const deleteMaintenance = async (req: Request, res: Response) => {
 
     SuccessResponse(res, { message: "Maintenance deleted successfully" }, 200);
 };
+
+
+export const maintenance_type=async (req: Request, res: Response) => {
+    const allTypes = await db.select().from(maintenanceTypes);
+    SuccessResponse(res, { maintenanceTypes: allTypes }, 200);
+};

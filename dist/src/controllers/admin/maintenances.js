@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deleteMaintenance = exports.updateMaintenance = exports.createMaintenance = exports.getMaintenanceById = exports.getAllMaintenances = void 0;
+exports.maintenance_type = exports.deleteMaintenance = exports.updateMaintenance = exports.createMaintenance = exports.getMaintenanceById = exports.getAllMaintenances = void 0;
 const db_1 = require("../../models/db");
 const schema_1 = require("../../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -127,3 +127,8 @@ const deleteMaintenance = async (req, res) => {
     (0, response_1.SuccessResponse)(res, { message: "Maintenance deleted successfully" }, 200);
 };
 exports.deleteMaintenance = deleteMaintenance;
+const maintenance_type = async (req, res) => {
+    const allTypes = await db_1.db.select().from(schema_1.maintenanceTypes);
+    (0, response_1.SuccessResponse)(res, { maintenanceTypes: allTypes }, 200);
+};
+exports.maintenance_type = maintenance_type;

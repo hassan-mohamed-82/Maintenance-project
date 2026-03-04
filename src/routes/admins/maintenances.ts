@@ -5,6 +5,7 @@ import {
     createMaintenance,
     updateMaintenance,
     deleteMaintenance,
+    maintenance_type
 } from "../../controllers/admin/maintenances";
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
@@ -13,6 +14,7 @@ import { createMaintenanceSchema, updateMaintenanceSchema } from "../../validato
 const router = Router();
 
 router.get("/", catchAsync(getAllMaintenances));
+router.get("/types", catchAsync(maintenance_type));
 router.get("/:id", catchAsync(getMaintenanceById));
 router.post("/", validate(createMaintenanceSchema), catchAsync(createMaintenance));
 router.put("/:id", validate(updateMaintenanceSchema), catchAsync(updateMaintenance));

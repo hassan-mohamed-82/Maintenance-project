@@ -7,6 +7,7 @@ const validation_1 = require("../../middlewares/validation");
 const maintenance_1 = require("../../validators/admin/maintenance");
 const router = (0, express_1.Router)();
 router.get("/", (0, catchAsync_1.catchAsync)(maintenances_1.getAllMaintenances));
+router.get("/types", (0, catchAsync_1.catchAsync)(maintenances_1.maintenance_type));
 router.get("/:id", (0, catchAsync_1.catchAsync)(maintenances_1.getMaintenanceById));
 router.post("/", (0, validation_1.validate)(maintenance_1.createMaintenanceSchema), (0, catchAsync_1.catchAsync)(maintenances_1.createMaintenance));
 router.put("/:id", (0, validation_1.validate)(maintenance_1.updateMaintenanceSchema), (0, catchAsync_1.catchAsync)(maintenances_1.updateMaintenance));
