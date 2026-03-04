@@ -10,11 +10,12 @@ import cityRouter from "./city";
 import zoneRouter from "./zone";
 import maintenanceTypesRouter from "./maintenanceTypes";
 import maintenancesRouter from "./maintenances";
+import garagesRouter from "./garages";
 
 import { Router } from "express";
 const route = Router();
-// route.use("/auth", catchAsync(AuthRoute));
-// route.use(authenticated, authorizeRoles("admin", "superadmin"));
+route.use("/auth", catchAsync(AuthRoute));
+route.use(authenticated, authorizeRoles("admin", "superadmin"));
 route.use("/roles", catchAsync(rolesRouter));
 route.use("/admins", catchAsync(adminRouter));
 route.use("/buses", catchAsync(busRouter));
@@ -23,5 +24,6 @@ route.use("/maintenanceTypes", catchAsync(maintenanceTypesRouter));
 route.use("/maintenances", catchAsync(maintenancesRouter));
 route.use("/cities", catchAsync(cityRouter));
 route.use("/zones", catchAsync(zoneRouter));
+route.use("/garages", catchAsync(garagesRouter));
 
 export default route;

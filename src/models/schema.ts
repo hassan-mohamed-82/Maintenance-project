@@ -9,3 +9,4 @@ export * from "./admin/MaintenanceType";
 export * from "./admin/Maintenance";
 export * from "./admin/city";
 export * from "./admin/zone";
+export * from "./admin/garages";

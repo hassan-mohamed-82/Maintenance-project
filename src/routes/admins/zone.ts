@@ -1,11 +1,11 @@
 import { Router } from "express";
-import { createZone,updateZone,getZoneById,getZones ,deleteZone} from "../../controllers/admin/zone";
+import { createZone, updateZone, getZoneById, getZones, deleteZone } from "../../controllers/admin/zone";
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
 const router = Router();
 // ✅ Create Zone
-    router.post("/", catchAsync(createZone));
-    // ✅ Get All Zones
+router.post("/", catchAsync(createZone));
+// ✅ Get All Zones
 router.get("/", catchAsync(getZones));
 // ✅ Get Zone By ID
 router.get("/:id", catchAsync(getZoneById));
