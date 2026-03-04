@@ -1,13 +1,10 @@
-// src/controllers/admin/garages.ts
-
 import { Request, Response } from "express";
 import { db } from "../../models/db";
-import { garages, cities, zones } from "../../models/schema";
+import { garages, cities } from "../../models/schema";
 import { eq, desc, and } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 import { NotFound } from "../../Errors/NotFound";
 import { BadRequest } from "../../Errors/BadRequest";
-import zone from "../../routes/admins/zone";
 
 // ✅ Create Garage
 export const createGarage = async (req: Request, res: Response) => {
@@ -27,17 +24,15 @@ export const createGarage = async (req: Request, res: Response) => {
   if (city.length === 0) {
     throw new NotFound("City not found");
   }
-  
 
-
-  await db.insert(garages).values({ name, cityId,location });
+  await db.insert(garages).values({ name, cityId, location });
 
   return SuccessResponse(res, { message: "Garage created successfully" }, 201);
 };
 
 // ✅ Get All Garages
 export const getGarages = async (req: Request, res: Response) => {
-  const { cityId, zoneId } = req.query;
+  const { cityId } = req.query;
 
   // Build where conditions
   const conditions = [];
@@ -49,18 +44,16 @@ export const getGarages = async (req: Request, res: Response) => {
     .select({
       id: garages.id,
       name: garages.name,
+      location: garages.location,
       createdAt: garages.createdAt,
       city: {
         id: cities.id,
         name: cities.name,
       },
-      zone: {
-        id: zones.id,
-        name: zones.name,
-      },
+      // 👇 شيلنا الـ zone من هنا خالص
     })
     .from(garages)
-    .leftJoin(cities, eq(garages.cityId, cities.id))
+    .leftJoin(cities, eq(garages.cityId, cities.id)) // بنعمل Join للمدينة بس
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(garages.createdAt));
 
@@ -74,15 +67,13 @@ export const getGarageById = async (req: Request, res: Response) => {
     .select({
       id: garages.id,
       name: garages.name,
+      location: garages.location,
       createdAt: garages.createdAt,
       city: {
         id: cities.id,
         name: cities.name,
       },
-      zone: {
-        id: zones.id,
-        name: zones.name,
-      },
+      // 👇 شيلنا الـ zone من هنا خالص
     })
     .from(garages)
     .leftJoin(cities, eq(garages.cityId, cities.id))
@@ -112,21 +103,9 @@ export const updateGarage = async (req: Request, res: Response) => {
   }
 
   if (cityId) {
-    const city = await db
-      .select()
-      .from(cities)
-      .where(eq(cities.id, cityId))
-      .limit(1);
-
-    if (city.length === 0) {
-      throw new NotFound("City not found");
-    }
+    const city = await db.select().from(cities).where(eq(cities.id, cityId)).limit(1);
+    if (city.length === 0) throw new NotFound("City not found");
   }
-
-
-    if (location.length === 0) {
-      throw new NotFound("location is required");
-    }
 
   await db
     .update(garages)
@@ -159,17 +138,15 @@ export const deleteGarage = async (req: Request, res: Response) => {
   return SuccessResponse(res, { message: "Garage deleted successfully" }, 200);
 };
 
-
+// ✅ Get Cities
 export const getCitiesWithZones = async (req: Request, res: Response) => {
-  // جلب كل المدن
   const cityList = await db
     .select()
     .from(cities)
     .orderBy(desc(cities.createdAt));
 
-  
-
   return SuccessResponse(res, {
-    totalCities: cityList.length
+    totalCities: cityList.length,
+    cities: cityList
   }, 200);
 };

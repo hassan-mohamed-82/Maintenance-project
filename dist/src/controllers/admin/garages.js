@@ -1,5 +1,4 @@
 "use strict";
-// src/controllers/admin/garages.ts
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.getCitiesWithZones = exports.deleteGarage = exports.updateGarage = exports.getGarageById = exports.getGarages = exports.createGarage = void 0;
 const db_1 = require("../../models/db");
@@ -32,7 +31,7 @@ const createGarage = async (req, res) => {
 exports.createGarage = createGarage;
 // ✅ Get All Garages
 const getGarages = async (req, res) => {
-    const { cityId, zoneId } = req.query;
+    const { cityId } = req.query;
     // Build where conditions
     const conditions = [];
     if (cityId && typeof cityId === "string") {
@@ -42,18 +41,16 @@ const getGarages = async (req, res) => {
         .select({
         id: schema_1.garages.id,
         name: schema_1.garages.name,
+        location: schema_1.garages.location,
         createdAt: schema_1.garages.createdAt,
         city: {
             id: schema_1.cities.id,
             name: schema_1.cities.name,
         },
-        zone: {
-            id: schema_1.zones.id,
-            name: schema_1.zones.name,
-        },
+        // 👇 شيلنا الـ zone من هنا خالص
     })
         .from(schema_1.garages)
-        .leftJoin(schema_1.cities, (0, drizzle_orm_1.eq)(schema_1.garages.cityId, schema_1.cities.id))
+        .leftJoin(schema_1.cities, (0, drizzle_orm_1.eq)(schema_1.garages.cityId, schema_1.cities.id)) // بنعمل Join للمدينة بس
         .where(conditions.length > 0 ? (0, drizzle_orm_1.and)(...conditions) : undefined)
         .orderBy((0, drizzle_orm_1.desc)(schema_1.garages.createdAt));
     return (0, response_1.SuccessResponse)(res, { garages: garageList }, 200);
@@ -66,15 +63,13 @@ const getGarageById = async (req, res) => {
         .select({
         id: schema_1.garages.id,
         name: schema_1.garages.name,
+        location: schema_1.garages.location,
         createdAt: schema_1.garages.createdAt,
         city: {
             id: schema_1.cities.id,
             name: schema_1.cities.name,
         },
-        zone: {
-            id: schema_1.zones.id,
-            name: schema_1.zones.name,
-        },
+        // 👇 شيلنا الـ zone من هنا خالص
     })
         .from(schema_1.garages)
         .leftJoin(schema_1.cities, (0, drizzle_orm_1.eq)(schema_1.garages.cityId, schema_1.cities.id))
@@ -99,17 +94,9 @@ const updateGarage = async (req, res) => {
         throw new NotFound_1.NotFound("Garage not found");
     }
     if (cityId) {
-        const city = await db_1.db
-            .select()
-            .from(schema_1.cities)
-            .where((0, drizzle_orm_1.eq)(schema_1.cities.id, cityId))
-            .limit(1);
-        if (city.length === 0) {
+        const city = await db_1.db.select().from(schema_1.cities).where((0, drizzle_orm_1.eq)(schema_1.cities.id, cityId)).limit(1);
+        if (city.length === 0)
             throw new NotFound_1.NotFound("City not found");
-        }
-    }
-    if (location.length === 0) {
-        throw new NotFound_1.NotFound("location is required");
     }
     await db_1.db
         .update(schema_1.garages)
@@ -137,14 +124,15 @@ const deleteGarage = async (req, res) => {
     return (0, response_1.SuccessResponse)(res, { message: "Garage deleted successfully" }, 200);
 };
 exports.deleteGarage = deleteGarage;
+// ✅ Get Cities
 const getCitiesWithZones = async (req, res) => {
-    // جلب كل المدن
     const cityList = await db_1.db
         .select()
         .from(schema_1.cities)
         .orderBy((0, drizzle_orm_1.desc)(schema_1.cities.createdAt));
     return (0, response_1.SuccessResponse)(res, {
-        totalCities: cityList.length
+        totalCities: cityList.length,
+        cities: cityList
     }, 200);
 };
 exports.getCitiesWithZones = getCitiesWithZones;
