@@ -13,8 +13,8 @@ import maintenancesRouter from "./maintenances";
 
 import { Router } from "express";
 const route = Router();
-route.use("/auth", catchAsync(AuthRoute));
-route.use(authenticated, authorizeRoles("admin", "superadmin"));
+// route.use("/auth", catchAsync(AuthRoute));
+// route.use(authenticated, authorizeRoles("admin", "superadmin"));
 route.use("/roles", catchAsync(rolesRouter));
 route.use("/admins", catchAsync(adminRouter));
 route.use("/buses", catchAsync(busRouter));

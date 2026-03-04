@@ -10,11 +10,10 @@ import { BadRequest } from "../../Errors/BadRequest";
 
 // ✅ Create Zone
 export const createZone = async (req: Request, res: Response) => {
-  const { name, cityId, cost } = req.body;
+  const { name, cityId } = req.body;
 
   if (!name) throw new BadRequest("name is required");
   if (!cityId) throw new BadRequest("cityId is required");
-  if (cost === undefined) throw new BadRequest("cost is required");
 
   // تحقق من وجود المدينة
   const city = await db
@@ -27,7 +26,7 @@ export const createZone = async (req: Request, res: Response) => {
     throw new NotFound("City not found");
   }
 
-  await db.insert(zones).values({ name, cityId, cost });
+  await db.insert(zones).values({ name, cityId });
 
   return SuccessResponse(res, { message: "Zone created successfully" }, 201);
 };
@@ -46,7 +45,6 @@ export const getZones = async (req: Request, res: Response) => {
     .select({
       id: zones.id,
       name: zones.name,
-      cost: zones.cost,
       createdAt: zones.createdAt,
       city: {
         id: cities.id,
@@ -68,7 +66,6 @@ export const getZoneById = async (req: Request, res: Response) => {
     .select({
       id: zones.id,
       name: zones.name,
-      cost: zones.cost,
       createdAt: zones.createdAt,
       city: {
         id: cities.id,
@@ -120,7 +117,6 @@ export const updateZone = async (req: Request, res: Response) => {
     .set({
       name: name || zone[0].name,
       cityId: cityId || zone[0].cityId,
-      cost: cost !== undefined ? cost : zone[0].cost,
     })
     .where(eq(zones.id, id));
 

@@ -10,13 +10,11 @@ const NotFound_1 = require("../../Errors/NotFound");
 const BadRequest_1 = require("../../Errors/BadRequest");
 // ✅ Create Zone
 const createZone = async (req, res) => {
-    const { name, cityId, cost } = req.body;
+    const { name, cityId } = req.body;
     if (!name)
         throw new BadRequest_1.BadRequest("name is required");
     if (!cityId)
         throw new BadRequest_1.BadRequest("cityId is required");
-    if (cost === undefined)
-        throw new BadRequest_1.BadRequest("cost is required");
     // تحقق من وجود المدينة
     const city = await db_1.db
         .select()
@@ -26,7 +24,7 @@ const createZone = async (req, res) => {
     if (city.length === 0) {
         throw new NotFound_1.NotFound("City not found");
     }
-    await db_1.db.insert(schema_1.zones).values({ name, cityId, cost });
+    await db_1.db.insert(schema_1.zones).values({ name, cityId });
     return (0, response_1.SuccessResponse)(res, { message: "Zone created successfully" }, 201);
 };
 exports.createZone = createZone;
@@ -42,7 +40,6 @@ const getZones = async (req, res) => {
         .select({
         id: schema_1.zones.id,
         name: schema_1.zones.name,
-        cost: schema_1.zones.cost,
         createdAt: schema_1.zones.createdAt,
         city: {
             id: schema_1.cities.id,
@@ -63,7 +60,6 @@ const getZoneById = async (req, res) => {
         .select({
         id: schema_1.zones.id,
         name: schema_1.zones.name,
-        cost: schema_1.zones.cost,
         createdAt: schema_1.zones.createdAt,
         city: {
             id: schema_1.cities.id,
@@ -108,7 +104,6 @@ const updateZone = async (req, res) => {
         .set({
         name: name || zone[0].name,
         cityId: cityId || zone[0].cityId,
-        cost: cost !== undefined ? cost : zone[0].cost,
     })
         .where((0, drizzle_orm_1.eq)(schema_1.zones.id, id));
     return (0, response_1.SuccessResponse)(res, { message: "Zone updated successfully" }, 200);

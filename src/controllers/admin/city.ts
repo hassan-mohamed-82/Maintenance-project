@@ -105,7 +105,6 @@ export const getCitiesWithZones = async (req: Request, res: Response) => {
     .select({
       id: zones.id,
       name: zones.name,
-      cost: zones.cost,
       cityId: zones.cityId,
     })
     .from(zones)
@@ -144,7 +143,6 @@ export const getCityWithZones = async (req: Request, res: Response) => {
     .select({
       id: zones.id,
       name: zones.name,
-      cost: zones.cost,
       createdAt: zones.createdAt,
     })
     .from(zones)
