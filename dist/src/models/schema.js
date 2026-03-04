@@ -21,3 +21,5 @@ __exportStar(require("./admin/Bus"), exports);
 __exportStar(require("./admin/Bustype"), exports);
 __exportStar(require("./admin/MaintenanceType"), exports);
 __exportStar(require("./admin/Maintenance"), exports);
+__exportStar(require("./admin/city"), exports);
+__exportStar(require("./admin/zone"), exports);

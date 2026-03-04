@@ -7,3 +7,5 @@ export * from "./admin/Bus";
 export * from "./admin/Bustype";
 export * from "./admin/MaintenanceType";
 export * from "./admin/Maintenance";
+export * from "./admin/city";
+export * from "./admin/zone";
