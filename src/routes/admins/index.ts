@@ -12,6 +12,7 @@ import maintenanceTypesRouter from "./maintenanceTypes";
 import maintenancesRouter from "./maintenances";
 import garagesRouter from "./garages";
 import usersRouter from "./users";
+import dashboardRouter from "./dashboard";
 
 import { Router } from "express";
 const route = Router();
@@ -27,5 +28,6 @@ route.use("/cities", catchAsync(cityRouter));
 route.use("/zones", catchAsync(zoneRouter));
 route.use("/garages", catchAsync(garagesRouter));
 route.use("/users", catchAsync(usersRouter));
+route.use("/dashboard", catchAsync(dashboardRouter));
 
 export default route;
