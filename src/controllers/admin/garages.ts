@@ -150,3 +150,15 @@ export const getCitiesWithZones = async (req: Request, res: Response) => {
     cities: cityList
   }, 200);
 };
+
+export const selectionGarages = async (req: Request, res: Response) => {
+  const garageList = await db
+    .select({
+      id: garages.id,
+      name: garages.name,
+    })
+    .from(garages)
+    .orderBy(desc(garages.createdAt));
+
+  return SuccessResponse(res, { garages: garageList }, 200);
+};
