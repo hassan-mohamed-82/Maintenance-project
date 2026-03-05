@@ -31,6 +31,7 @@ export const users = mysqlTable("users", {
     // Optional Auth fields (Required only if hasAccount is true)
     // Note: NULL values are ignored by MySQL's UNIQUE constraint, so multiple users without accounts can have a NULL username
     username: varchar("username", { length: 255 }).unique(),
+    email: varchar("email", { length: 255 }).unique(),
     password: varchar("password", { length: 255 }),
 
     status: mysqlEnum("status", ["active", "inactive"]).default("active"),
