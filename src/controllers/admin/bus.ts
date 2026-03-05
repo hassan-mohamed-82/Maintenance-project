@@ -31,6 +31,7 @@ export const getAllBuses = async (req: Request, res: Response) => {
         name: busTypes.name,
         capacity: busTypes.capacity,
       },
+      qrCode: buses.qrCode,
     })
     .from(buses)
     .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id));
@@ -61,6 +62,7 @@ export const getBusById = async (req: Request, res: Response) => {
         capacity: busTypes.capacity,
         description: busTypes.description,
       },
+      qrCode: buses.qrCode,
     })
     .from(buses)
     .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id))
@@ -509,6 +511,7 @@ export const getBusDetails = async (req: Request, res: Response) => {
       // Bus Type
       busTypeId: busTypes.id,
       busTypeName: busTypes.name,
+      qrCode: buses.qrCode,
     })
     .from(buses)
     .leftJoin(busTypes, eq(buses.busTypeId, busTypes.id))
