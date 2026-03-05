@@ -1,4 +1,3 @@
-
 // src/models/schema/index.ts
 
 export * from "./admin/admin";
@@ -11,3 +10,4 @@ export * from "./admin/city";
 export * from "./admin/zone";
 export * from "./admin/garages";
 export * from "./admin/Users";
+export * from "./user/busCheckIns";
