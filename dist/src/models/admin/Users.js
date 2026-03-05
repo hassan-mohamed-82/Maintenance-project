@@ -3,11 +3,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.users = void 0;
 const mysql_core_1 = require("drizzle-orm/mysql-core");
 const drizzle_orm_1 = require("drizzle-orm");
+const schema_1 = require("../schema");
 exports.users = (0, mysql_core_1.mysqlTable)("users", {
     id: (0, mysql_core_1.char)("id", { length: 36 }).primaryKey().default((0, drizzle_orm_1.sql) `(UUID())`),
     phone: (0, mysql_core_1.varchar)("phone", { length: 255 }).notNull(),
     avatar: (0, mysql_core_1.varchar)("avatar", { length: 255 }),
     name: (0, mysql_core_1.varchar)("name", { length: 255 }).notNull(),
+    garageId: (0, mysql_core_1.char)("garage_id", { length: 36 }).references(() => schema_1.garages.id),
     // Role
     role: (0, mysql_core_1.mysqlEnum)("role", [
         "driver",

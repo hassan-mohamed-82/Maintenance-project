@@ -5,6 +5,9 @@ const db_1 = require("../../models/db");
 const schema_1 = require("../../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
 const response_1 = require("../../utils/response");
+// ✅ شيلنا حتة '0000-00-00 00:00:00' لأنها بتضرب إيرور في MySQL
+// واعتمدنا بس إن الـ checkOutTime يكون null (يعني الباص لسه جوة)
+const isCheckedInCondition = (0, drizzle_orm_1.isNull)(schema_1.busCheckIns.checkOutTime);
 const getDashboardStats = async (req, res) => {
     const [totalBuses] = await db_1.db.select({ count: (0, drizzle_orm_1.count)() }).from(schema_1.buses);
     const [activeBuses] = await db_1.db
@@ -25,18 +28,22 @@ const getDashboardStats = async (req, res) => {
 };
 exports.getDashboardStats = getDashboardStats;
 const getGaragesBusesStats = async (req, res) => {
+    // 💡 عدلنا اللوجيك بتاع حساب الإحصائيات عشان يشتغل صح مع الـ Group By
     const stats = await db_1.db
         .select({
         garageId: schema_1.garages.id,
         garageName: schema_1.garages.name,
-        activeCount: (0, drizzle_orm_1.sql) `CAST(SUM(CASE WHEN ${schema_1.buses.status} = 'active' THEN 1 ELSE 0 END) AS SIGNED)`,
-        inactiveCount: (0, drizzle_orm_1.sql) `CAST(SUM(CASE WHEN ${schema_1.buses.status} = 'inactive' THEN 1 ELSE 0 END) AS SIGNED)`,
-        maintenanceCount: (0, drizzle_orm_1.sql) `CAST(SUM(CASE WHEN ${schema_1.buses.status} = 'maintenance' THEN 1 ELSE 0 END) AS SIGNED)`,
-        totalBuses: (0, drizzle_orm_1.sql) `CAST(COUNT(${schema_1.busCheckIns.busId}) AS SIGNED)`
+        // 💡 استخدمنا COALESCE عشان لو مفيش باصات يرجع 0 بدل null
+        activeCount: (0, drizzle_orm_1.sql) `COALESCE(CAST(SUM(CASE WHEN ${schema_1.buses.status} = 'active' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+        inactiveCount: (0, drizzle_orm_1.sql) `COALESCE(CAST(SUM(CASE WHEN ${schema_1.buses.status} = 'inactive' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+        maintenanceCount: (0, drizzle_orm_1.sql) `COALESCE(CAST(SUM(CASE WHEN ${schema_1.buses.status} = 'maintenance' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+        totalBuses: (0, drizzle_orm_1.sql) `COALESCE(CAST(COUNT(${schema_1.busCheckIns.busId}) AS SIGNED), 0)`
     })
         .from(schema_1.garages)
-        .leftJoin(schema_1.busCheckIns, (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.garageId, schema_1.garages.id), (0, drizzle_orm_1.isNull)(schema_1.busCheckIns.checkOutTime)))
-        .leftJoin(schema_1.buses, (0, drizzle_orm_1.eq)(schema_1.buses.id, schema_1.busCheckIns.busId))
+        .leftJoin(schema_1.busCheckIns, (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.garageId, schema_1.garages.id), isCheckedInCondition // الباص اللي لسه متعملوش تسجيل خروج
+    ))
+        .leftJoin(schema_1.buses, (0, drizzle_orm_1.eq)(schema_1.buses.id, schema_1.busCheckIns.busId) // بنجيب بيانات الباص بناءً على الـ CheckIn بتاعه
+    )
         .groupBy(schema_1.garages.id, schema_1.garages.name);
     (0, response_1.SuccessResponse)(res, { garages: stats }, 200);
 };
@@ -54,7 +61,7 @@ const getGarageBusesList = async (req, res) => {
     })
         .from(schema_1.busCheckIns)
         .innerJoin(schema_1.buses, (0, drizzle_orm_1.eq)(schema_1.buses.id, schema_1.busCheckIns.busId))
-        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.garageId, garageId), (0, drizzle_orm_1.isNull)(schema_1.busCheckIns.checkOutTime)))
+        .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.garageId, garageId), isCheckedInCondition))
         .orderBy((0, drizzle_orm_1.desc)(schema_1.busCheckIns.checkInTime));
     (0, response_1.SuccessResponse)(res, { buses: garageBuses }, 200);
 };
@@ -75,7 +82,7 @@ const getBusCheckinDetails = async (req, res) => {
         garageName: schema_1.garages.name,
     })
         .from(schema_1.buses)
-        .leftJoin(schema_1.busCheckIns, (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.busId, schema_1.buses.id), (0, drizzle_orm_1.isNull)(schema_1.busCheckIns.checkOutTime)))
+        .leftJoin(schema_1.busCheckIns, (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.busId, schema_1.buses.id), isCheckedInCondition))
         .leftJoin(schema_1.garages, (0, drizzle_orm_1.eq)(schema_1.garages.id, schema_1.busCheckIns.garageId))
         .where((0, drizzle_orm_1.eq)(schema_1.buses.id, busId))
         .limit(1);

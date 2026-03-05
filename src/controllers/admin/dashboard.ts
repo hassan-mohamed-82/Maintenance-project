@@ -4,6 +4,10 @@ import { buses, garages, busCheckIns } from "../../models/schema";
 import { count, eq, sql, and, isNull, desc } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 
+// ✅ شيلنا حتة '0000-00-00 00:00:00' لأنها بتضرب إيرور في MySQL
+// واعتمدنا بس إن الـ checkOutTime يكون null (يعني الباص لسه جوة)
+const isCheckedInCondition = isNull(busCheckIns.checkOutTime);
+
 export const getDashboardStats = async (req: Request, res: Response) => {
     const [totalBuses] = await db.select({ count: count() }).from(buses);
 
@@ -31,26 +35,28 @@ export const getDashboardStats = async (req: Request, res: Response) => {
 };
 
 export const getGaragesBusesStats = async (req: Request, res: Response) => {
+    // 💡 عدلنا اللوجيك بتاع حساب الإحصائيات عشان يشتغل صح مع الـ Group By
     const stats = await db
         .select({
             garageId: garages.id,
             garageName: garages.name,
-            activeCount: sql<number>`CAST(SUM(CASE WHEN ${buses.status} = 'active' THEN 1 ELSE 0 END) AS SIGNED)`,
-            inactiveCount: sql<number>`CAST(SUM(CASE WHEN ${buses.status} = 'inactive' THEN 1 ELSE 0 END) AS SIGNED)`,
-            maintenanceCount: sql<number>`CAST(SUM(CASE WHEN ${buses.status} = 'maintenance' THEN 1 ELSE 0 END) AS SIGNED)`,
-            totalBuses: sql<number>`CAST(COUNT(${busCheckIns.busId}) AS SIGNED)`
+            // 💡 استخدمنا COALESCE عشان لو مفيش باصات يرجع 0 بدل null
+            activeCount: sql<number>`COALESCE(CAST(SUM(CASE WHEN ${buses.status} = 'active' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+            inactiveCount: sql<number>`COALESCE(CAST(SUM(CASE WHEN ${buses.status} = 'inactive' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+            maintenanceCount: sql<number>`COALESCE(CAST(SUM(CASE WHEN ${buses.status} = 'maintenance' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+            totalBuses: sql<number>`COALESCE(CAST(COUNT(${busCheckIns.busId}) AS SIGNED), 0)`
         })
         .from(garages)
         .leftJoin(
             busCheckIns,
             and(
                 eq(busCheckIns.garageId, garages.id),
-                isNull(busCheckIns.checkOutTime)
+                isCheckedInCondition // الباص اللي لسه متعملوش تسجيل خروج
             )
         )
         .leftJoin(
             buses,
-            eq(buses.id, busCheckIns.busId)
+            eq(buses.id, busCheckIns.busId) // بنجيب بيانات الباص بناءً على الـ CheckIn بتاعه
         )
         .groupBy(garages.id, garages.name);
 
@@ -74,7 +80,7 @@ export const getGarageBusesList = async (req: Request, res: Response) => {
         .where(
             and(
                 eq(busCheckIns.garageId, garageId),
-                isNull(busCheckIns.checkOutTime)
+                isCheckedInCondition
             )
         )
         .orderBy(desc(busCheckIns.checkInTime));
@@ -103,7 +109,7 @@ export const getBusCheckinDetails = async (req: Request, res: Response) => {
             busCheckIns,
             and(
                 eq(busCheckIns.busId, buses.id),
-                isNull(busCheckIns.checkOutTime)
+                isCheckedInCondition
             )
         )
         .leftJoin(

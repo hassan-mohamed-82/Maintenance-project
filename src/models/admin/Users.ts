@@ -7,12 +7,14 @@ import {
     boolean,
 } from "drizzle-orm/mysql-core";
 import { sql } from "drizzle-orm";
+import { garages } from "../schema";
 
 export const users = mysqlTable("users", {
     id: char("id", { length: 36 }).primaryKey().default(sql`(UUID())`),
     phone: varchar("phone", { length: 255 }).notNull(),
     avatar: varchar("avatar", { length: 255 }),
     name: varchar("name", { length: 255 }).notNull(),
+    garageId: char("garage_id", { length: 36 }).references(() => garages.id),
 
     // Role
     role: mysqlEnum("role", [
