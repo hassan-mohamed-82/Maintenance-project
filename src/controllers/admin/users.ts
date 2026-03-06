@@ -11,7 +11,7 @@ import bcrypt from "bcrypt";
 
 // ✅ Create User
 export const createUser = async (req: Request, res: Response) => {
-    const { name, phone, avatar, role, hasAccount, username, password } = req.body;
+    const { name, phone, avatar, role, hasAccount, username, password, garageId } = req.body;
 
     if (!name) throw new BadRequest("name is required");
     if (!phone) throw new BadRequest("phone is required");
@@ -53,6 +53,7 @@ export const createUser = async (req: Request, res: Response) => {
         hasAccount: hasAccount || false,
         username: finalUsername,
         password: hashedPassword,
+        garageId: garageId || null,
     });
 
     return SuccessResponse(res, { message: "User created successfully" }, 201);
@@ -71,6 +72,7 @@ export const getUsers = async (req: Request, res: Response) => {
             username: users.username,
             status: users.status,
             createdAt: users.createdAt,
+            garageId: users.garageId,
         })
         .from(users)
         .orderBy(desc(users.createdAt));
@@ -92,6 +94,7 @@ export const getUserById = async (req: Request, res: Response) => {
             username: users.username,
             status: users.status,
             createdAt: users.createdAt,
+            garageId: users.garageId,
         })
         .from(users)
         .where(eq(users.id, id))
@@ -107,7 +110,7 @@ export const getUserById = async (req: Request, res: Response) => {
 // ✅ Update User
 export const updateUser = async (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, phone, avatar, role, hasAccount, username, password, status } = req.body;
+    const { name, phone, avatar, role, hasAccount, username, password, status, garageId } = req.body;
 
     const user = await db
         .select()
@@ -125,6 +128,7 @@ export const updateUser = async (req: Request, res: Response) => {
         role: role || user[0].role,
         status: status || user[0].status,
         hasAccount: hasAccount !== undefined ? hasAccount : user[0].hasAccount,
+        garageId: garageId || user[0].garageId,
     };
 
     // Handle avatar update
