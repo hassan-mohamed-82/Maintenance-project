@@ -15,7 +15,7 @@ const deleteImage_1 = require("../../utils/deleteImage");
 const bcrypt_1 = __importDefault(require("bcrypt"));
 // ✅ Create User
 const createUser = async (req, res) => {
-    const { name, phone, avatar, role, hasAccount, username, password } = req.body;
+    const { name, phone, avatar, role, hasAccount, username, password, garageId } = req.body;
     if (!name)
         throw new BadRequest_1.BadRequest("name is required");
     if (!phone)
@@ -54,6 +54,7 @@ const createUser = async (req, res) => {
         hasAccount: hasAccount || false,
         username: finalUsername,
         password: hashedPassword,
+        garageId: garageId || null,
     });
     return (0, response_1.SuccessResponse)(res, { message: "User created successfully" }, 201);
 };
@@ -71,6 +72,7 @@ const getUsers = async (req, res) => {
         username: schema_1.users.username,
         status: schema_1.users.status,
         createdAt: schema_1.users.createdAt,
+        garageId: schema_1.users.garageId,
     })
         .from(schema_1.users)
         .orderBy((0, drizzle_orm_1.desc)(schema_1.users.createdAt));
@@ -91,6 +93,7 @@ const getUserById = async (req, res) => {
         username: schema_1.users.username,
         status: schema_1.users.status,
         createdAt: schema_1.users.createdAt,
+        garageId: schema_1.users.garageId,
     })
         .from(schema_1.users)
         .where((0, drizzle_orm_1.eq)(schema_1.users.id, id))
@@ -104,7 +107,7 @@ exports.getUserById = getUserById;
 // ✅ Update User
 const updateUser = async (req, res) => {
     const { id } = req.params;
-    const { name, phone, avatar, role, hasAccount, username, password, status } = req.body;
+    const { name, phone, avatar, role, hasAccount, username, password, status, garageId } = req.body;
     const user = await db_1.db
         .select()
         .from(schema_1.users)
@@ -119,6 +122,7 @@ const updateUser = async (req, res) => {
         role: role || user[0].role,
         status: status || user[0].status,
         hasAccount: hasAccount !== undefined ? hasAccount : user[0].hasAccount,
+        garageId: garageId || user[0].garageId,
     };
     // Handle avatar update
     if (avatar) {

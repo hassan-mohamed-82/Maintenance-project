@@ -23,6 +23,7 @@ exports.users = (0, mysql_core_1.mysqlTable)("users", {
     // Optional Auth fields (Required only if hasAccount is true)
     // Note: NULL values are ignored by MySQL's UNIQUE constraint, so multiple users without accounts can have a NULL username
     username: (0, mysql_core_1.varchar)("username", { length: 255 }).unique(),
+    email: (0, mysql_core_1.varchar)("email", { length: 255 }).unique(),
     password: (0, mysql_core_1.varchar)("password", { length: 255 }),
     status: (0, mysql_core_1.mysqlEnum)("status", ["active", "inactive"]).default("active"),
     createdAt: (0, mysql_core_1.timestamp)("created_at").defaultNow(),

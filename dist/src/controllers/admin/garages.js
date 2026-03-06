@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getCitiesWithZones = exports.deleteGarage = exports.updateGarage = exports.getGarageById = exports.getGarages = exports.createGarage = void 0;
+exports.selectionGarages = exports.getCitiesWithZones = exports.deleteGarage = exports.updateGarage = exports.getGarageById = exports.getGarages = exports.createGarage = void 0;
 const db_1 = require("../../models/db");
 const schema_1 = require("../../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -136,3 +136,14 @@ const getCitiesWithZones = async (req, res) => {
     }, 200);
 };
 exports.getCitiesWithZones = getCitiesWithZones;
+const selectionGarages = async (req, res) => {
+    const garageList = await db_1.db
+        .select({
+        id: schema_1.garages.id,
+        name: schema_1.garages.name,
+    })
+        .from(schema_1.garages)
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.garages.createdAt));
+    return (0, response_1.SuccessResponse)(res, { garages: garageList }, 200);
+};
+exports.selectionGarages = selectionGarages;

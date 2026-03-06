@@ -8,6 +8,8 @@ const router = (0, express_1.Router)();
 router.post("/", (0, catchAsync_1.catchAsync)(garages_1.createGarage));
 // ✅ Get Cities With Zones Selection
 router.get("/cities-zones", (0, catchAsync_1.catchAsync)(garages_1.getCitiesWithZones));
+// ✅ Get Selection Garages
+router.get("/selection", (0, catchAsync_1.catchAsync)(garages_1.selectionGarages));
 // ✅ Get All Garages
 router.get("/", (0, catchAsync_1.catchAsync)(garages_1.getGarages));
 // ✅ Get Garage By ID
