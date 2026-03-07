@@ -12,4 +12,6 @@ dashboardRouter.get("/garages-stats", (0, catchAsync_1.catchAsync)(dashboard_1.g
 dashboardRouter.get("/garages/:garageId/buses", (0, catchAsync_1.catchAsync)(dashboard_1.getGarageBusesList));
 // Route to get check-in details for a specific bus
 dashboardRouter.get("/buses/:busId/checkin-details", (0, catchAsync_1.catchAsync)(dashboard_1.getBusCheckinDetails));
+// Route to get maintenance reports with optional filters
+dashboardRouter.get("/reports/maintenance", (0, catchAsync_1.catchAsync)(dashboard_1.getMaintenanceReports));
 exports.default = dashboardRouter;

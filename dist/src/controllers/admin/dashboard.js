@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getBusCheckinDetails = exports.getGarageBusesList = exports.getGaragesBusesStats = exports.getDashboardStats = void 0;
+exports.getMaintenanceReports = exports.getBusCheckinDetails = exports.getGarageBusesList = exports.getGaragesBusesStats = exports.getDashboardStats = void 0;
 const db_1 = require("../../models/db");
 const schema_1 = require("../../models/schema");
 const drizzle_orm_1 = require("drizzle-orm");
@@ -113,3 +113,73 @@ const getBusCheckinDetails = async (req, res) => {
     (0, response_1.SuccessResponse)(res, { bus: { ...responseBusDetails, reportedMaintenances } }, 200);
 };
 exports.getBusCheckinDetails = getBusCheckinDetails;
+const getMaintenanceReports = async (req, res) => {
+    const { garageId, maintenanceTypeId, busId } = req.query;
+    const filters = [];
+    if (garageId)
+        filters.push((0, drizzle_orm_1.eq)(schema_1.busCheckIns.garageId, String(garageId)));
+    if (busId)
+        filters.push((0, drizzle_orm_1.eq)(schema_1.busCheckIns.busId, String(busId)));
+    // If maintenanceTypeId is provided, we only want checkIns that have this maintenance type
+    if (maintenanceTypeId) {
+        const matchingCheckIns = await db_1.db
+            .select({ busCheckInId: schema_1.checkInMaintenanceTypes.busCheckInId })
+            .from(schema_1.checkInMaintenanceTypes)
+            .where((0, drizzle_orm_1.eq)(schema_1.checkInMaintenanceTypes.maintenanceTypeId, String(maintenanceTypeId)));
+        const matchedIds = matchingCheckIns.map(c => c.busCheckInId);
+        if (matchedIds.length === 0) {
+            return (0, response_1.SuccessResponse)(res, { reports: [] }, 200);
+        }
+        filters.push((0, drizzle_orm_1.inArray)(schema_1.busCheckIns.id, matchedIds));
+    }
+    // Fetch reports data based on filters
+    const reportsData = await db_1.db
+        .select({
+        checkInId: schema_1.busCheckIns.id,
+        busNumber: schema_1.buses.busNumber,
+        plateNumber: schema_1.buses.plateNumber,
+        busType: schema_1.busTypes.name,
+        driverName: schema_1.users.name,
+        checkInTime: schema_1.busCheckIns.checkInTime,
+        garageName: schema_1.garages.name,
+    })
+        .from(schema_1.busCheckIns)
+        .innerJoin(schema_1.buses, (0, drizzle_orm_1.eq)(schema_1.buses.id, schema_1.busCheckIns.busId))
+        .leftJoin(schema_1.busTypes, (0, drizzle_orm_1.eq)(schema_1.busTypes.id, schema_1.buses.busTypeId))
+        .innerJoin(schema_1.garages, (0, drizzle_orm_1.eq)(schema_1.garages.id, schema_1.busCheckIns.garageId))
+        .leftJoin(schema_1.users, (0, drizzle_orm_1.eq)(schema_1.users.id, schema_1.busCheckIns.driverId))
+        .where(filters.length > 0 ? (0, drizzle_orm_1.and)(...filters) : undefined)
+        .orderBy((0, drizzle_orm_1.desc)(schema_1.busCheckIns.checkInTime));
+    if (reportsData.length === 0) {
+        return (0, response_1.SuccessResponse)(res, { reports: [] }, 200);
+    }
+    // Fetch maintenance types for these check-ins
+    const checkInIds = reportsData.map(r => r.checkInId);
+    const maintenancesData = await db_1.db
+        .select({
+        checkInId: schema_1.checkInMaintenanceTypes.busCheckInId,
+        maintenanceName: schema_1.maintenanceTypes.name,
+    })
+        .from(schema_1.checkInMaintenanceTypes)
+        .innerJoin(schema_1.maintenanceTypes, (0, drizzle_orm_1.eq)(schema_1.maintenanceTypes.id, schema_1.checkInMaintenanceTypes.maintenanceTypeId))
+        .where((0, drizzle_orm_1.inArray)(schema_1.checkInMaintenanceTypes.busCheckInId, checkInIds));
+    const maintenancesMap = {};
+    for (const m of maintenancesData) {
+        if (!maintenancesMap[m.checkInId]) {
+            maintenancesMap[m.checkInId] = [];
+        }
+        maintenancesMap[m.checkInId].push(m.maintenanceName);
+    }
+    // Only include check-ins that actually have reported maintenances (faults)
+    const finalReports = reportsData
+        .filter(r => maintenancesMap[r.checkInId] && maintenancesMap[r.checkInId].length > 0)
+        .map(r => {
+        const { checkInId, ...rest } = r;
+        return {
+            ...rest,
+            reportedMaintenances: maintenancesMap[r.checkInId]
+        };
+    });
+    (0, response_1.SuccessResponse)(res, { reports: finalReports }, 200);
+};
+exports.getMaintenanceReports = getMaintenanceReports;

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { db } from "../../models/db";
-import { buses, garages, busCheckIns, users, checkInMaintenanceTypes, maintenanceTypes } from "../../models/schema";
-import { count, eq, sql, and, isNull, desc } from "drizzle-orm";
+import { buses, garages, busCheckIns, users, checkInMaintenanceTypes, maintenanceTypes, busTypes } from "../../models/schema";
+import { count, eq, sql, and, isNull, desc, inArray } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 
 // ✅ شيلنا حتة '0000-00-00 00:00:00' لأنها بتضرب إيرور في MySQL
@@ -157,4 +157,83 @@ export const getBusCheckinDetails = async (req: Request, res: Response) => {
     const { checkInId, ...responseBusDetails } = busDetails;
 
     SuccessResponse(res, { bus: { ...responseBusDetails, reportedMaintenances } }, 200);
+};
+
+export const getMaintenanceReports = async (req: Request, res: Response) => {
+    const { garageId, maintenanceTypeId, busId } = req.query;
+
+    const filters = [];
+
+    if (garageId) filters.push(eq(busCheckIns.garageId, String(garageId)));
+    if (busId) filters.push(eq(busCheckIns.busId, String(busId)));
+
+    // If maintenanceTypeId is provided, we only want checkIns that have this maintenance type
+    if (maintenanceTypeId) {
+        const matchingCheckIns = await db
+            .select({ busCheckInId: checkInMaintenanceTypes.busCheckInId })
+            .from(checkInMaintenanceTypes)
+            .where(eq(checkInMaintenanceTypes.maintenanceTypeId, String(maintenanceTypeId)));
+
+        const matchedIds = matchingCheckIns.map(c => c.busCheckInId);
+        if (matchedIds.length === 0) {
+            return SuccessResponse(res, { reports: [] }, 200);
+        }
+        filters.push(inArray(busCheckIns.id, matchedIds));
+    }
+
+    // Fetch reports data based on filters
+    const reportsData = await db
+        .select({
+            checkInId: busCheckIns.id,
+            busNumber: buses.busNumber,
+            plateNumber: buses.plateNumber,
+            busType: busTypes.name,
+            driverName: users.name,
+            checkInTime: busCheckIns.checkInTime,
+            garageName: garages.name,
+        })
+        .from(busCheckIns)
+        .innerJoin(buses, eq(buses.id, busCheckIns.busId))
+        .leftJoin(busTypes, eq(busTypes.id, buses.busTypeId))
+        .innerJoin(garages, eq(garages.id, busCheckIns.garageId))
+        .leftJoin(users, eq(users.id, busCheckIns.driverId))
+        .where(filters.length > 0 ? and(...filters) : undefined)
+        .orderBy(desc(busCheckIns.checkInTime));
+
+    if (reportsData.length === 0) {
+        return SuccessResponse(res, { reports: [] }, 200);
+    }
+
+    // Fetch maintenance types for these check-ins
+    const checkInIds = reportsData.map(r => r.checkInId);
+
+    const maintenancesData = await db
+        .select({
+            checkInId: checkInMaintenanceTypes.busCheckInId,
+            maintenanceName: maintenanceTypes.name,
+        })
+        .from(checkInMaintenanceTypes)
+        .innerJoin(maintenanceTypes, eq(maintenanceTypes.id, checkInMaintenanceTypes.maintenanceTypeId))
+        .where(inArray(checkInMaintenanceTypes.busCheckInId, checkInIds));
+
+    const maintenancesMap: Record<string, string[]> = {};
+    for (const m of maintenancesData) {
+        if (!maintenancesMap[m.checkInId]) {
+            maintenancesMap[m.checkInId] = [];
+        }
+        maintenancesMap[m.checkInId].push(m.maintenanceName);
+    }
+
+    // Only include check-ins that actually have reported maintenances (faults)
+    const finalReports = reportsData
+        .filter(r => maintenancesMap[r.checkInId] && maintenancesMap[r.checkInId].length > 0)
+        .map(r => {
+            const { checkInId, ...rest } = r;
+            return {
+                ...rest,
+                reportedMaintenances: maintenancesMap[r.checkInId]
+            };
+        });
+
+    SuccessResponse(res, { reports: finalReports }, 200);
 };
