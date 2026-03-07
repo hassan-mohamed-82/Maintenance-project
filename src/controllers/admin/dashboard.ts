@@ -9,32 +9,23 @@ import { SuccessResponse } from "../../utils/response";
 const isCheckedInCondition = isNull(busCheckIns.checkOutTime);
 
 export const getDashboardStats = async (req: Request, res: Response) => {
-    const [totalBuses] = await db.select({ count: count() }).from(buses);
-
-    const [activeBuses] = await db
-        .select({ count: count() })
-        .from(buses)
-        .where(eq(buses.status, "active"));
-
-    const [maintenanceBuses] = await db
-        .select({ count: count() })
-        .from(buses)
-        .where(eq(buses.status, "maintenance"));
-
-
-    const [inactive] = await db
-        .select({ count: count() })
-        .from(buses)
-        .where(eq(buses.status, "inactive"));
+    const [dashboardStats] = await db
+        .select({
+            totalBuses: sql<number>`COALESCE(CAST(COUNT(${buses.id}) AS SIGNED), 0)`,
+            activeBuses: sql<number>`COALESCE(CAST(SUM(CASE WHEN ${buses.status} = 'active' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+            inactiveBuses: sql<number>`COALESCE(CAST(SUM(CASE WHEN ${buses.status} = 'inactive' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+            maintenanceBuses: sql<number>`COALESCE(CAST(SUM(CASE WHEN ${buses.status} = 'maintenance' THEN 1 ELSE 0 END) AS SIGNED), 0)`,
+        })
+        .from(buses);
 
     SuccessResponse(
         res,
         {
             dashboard: {
-                totalBuses: totalBuses.count,
-                activeBuses: activeBuses.count,
-                inactiveBuses: inactive.count,
-                maintenanceBuses: maintenanceBuses.count,
+                totalBuses: dashboardStats.totalBuses,
+                activeBuses: dashboardStats.activeBuses,
+                inactiveBuses: dashboardStats.inactiveBuses,
+                maintenanceBuses: dashboardStats.maintenanceBuses,
             }
         },
         200
