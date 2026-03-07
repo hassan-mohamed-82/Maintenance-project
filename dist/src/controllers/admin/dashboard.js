@@ -18,10 +18,15 @@ const getDashboardStats = async (req, res) => {
         .select({ count: (0, drizzle_orm_1.count)() })
         .from(schema_1.buses)
         .where((0, drizzle_orm_1.eq)(schema_1.buses.status, "maintenance"));
+    const [inactive] = await db_1.db
+        .select({ count: (0, drizzle_orm_1.count)() })
+        .from(schema_1.buses)
+        .where((0, drizzle_orm_1.eq)(schema_1.buses.status, "inactive"));
     (0, response_1.SuccessResponse)(res, {
         dashboard: {
             totalBuses: totalBuses.count,
             activeBuses: activeBuses.count,
+            inactiveBuses: inactive.count,
             maintenanceBuses: maintenanceBuses.count,
         }
     }, 200);

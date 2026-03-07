@@ -21,12 +21,19 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .from(buses)
         .where(eq(buses.status, "maintenance"));
 
+
+    const [inactive]=await db
+        .select({count:count()})
+        .from(buses)
+        .where(eq(buses.status,"inactive"));    
+
     SuccessResponse(
         res,
         {
             dashboard: {
                 totalBuses: totalBuses.count,
                 activeBuses: activeBuses.count,
+                inactiveBuses: inactive.count,
                 maintenanceBuses: maintenanceBuses.count,
             }
         },
