@@ -26,3 +26,4 @@ __exportStar(require("./admin/zone"), exports);
 __exportStar(require("./admin/garages"), exports);
 __exportStar(require("./admin/Users"), exports);
 __exportStar(require("./user/busCheckIns"), exports);
+__exportStar(require("./user/busCheckInMaintenanceTypes"), exports);

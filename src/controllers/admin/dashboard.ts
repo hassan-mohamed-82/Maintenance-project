@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../../models/db";
-import { buses, garages, busCheckIns } from "../../models/schema";
+import { buses, garages, busCheckIns, users, checkInMaintenanceTypes, maintenanceTypes } from "../../models/schema";
 import { count, eq, sql, and, isNull, desc } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 
@@ -22,10 +22,10 @@ export const getDashboardStats = async (req: Request, res: Response) => {
         .where(eq(buses.status, "maintenance"));
 
 
-    const [inactive]=await db
-        .select({count:count()})
+    const [inactive] = await db
+        .select({ count: count() })
         .from(buses)
-        .where(eq(buses.status,"inactive"));    
+        .where(eq(buses.status, "inactive"));
 
     SuccessResponse(
         res,
@@ -110,6 +110,8 @@ export const getBusCheckinDetails = async (req: Request, res: Response) => {
             checkInTime: busCheckIns.checkInTime,
             description: busCheckIns.description,
             garageName: garages.name,
+            driverName: users.name,
+            checkInId: busCheckIns.id,
         })
         .from(buses)
         .leftJoin(
@@ -123,6 +125,10 @@ export const getBusCheckinDetails = async (req: Request, res: Response) => {
             garages,
             eq(garages.id, busCheckIns.garageId)
         )
+        .leftJoin(
+            users,
+            eq(users.id, busCheckIns.driverId)
+        )
         .where(eq(buses.id, busId))
         .limit(1);
 
@@ -130,5 +136,25 @@ export const getBusCheckinDetails = async (req: Request, res: Response) => {
         return res.status(404).json({ success: false, message: "Bus not found" });
     }
 
-    SuccessResponse(res, { bus: details[0] }, 200);
+    const busDetails = details[0];
+    let reportedMaintenances: string[] = [];
+
+    if (busDetails.checkInId) {
+        const maintenanceData = await db
+            .select({
+                name: maintenanceTypes.name
+            })
+            .from(checkInMaintenanceTypes)
+            .innerJoin(
+                maintenanceTypes,
+                eq(maintenanceTypes.id, checkInMaintenanceTypes.maintenanceTypeId)
+            )
+            .where(eq(checkInMaintenanceTypes.busCheckInId, busDetails.checkInId));
+
+        reportedMaintenances = maintenanceData.map(m => m.name);
+    }
+
+    const { checkInId, ...responseBusDetails } = busDetails;
+
+    SuccessResponse(res, { bus: { ...responseBusDetails, reportedMaintenances } }, 200);
 };

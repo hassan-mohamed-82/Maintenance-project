@@ -11,6 +11,7 @@ exports.busCheckIns = (0, mysql_core_1.mysqlTable)("bus_check_ins", {
     busId: (0, mysql_core_1.char)("bus_id", { length: 36 }).notNull().references(() => Bus_1.buses.id),
     garageId: (0, mysql_core_1.char)("garage_id", { length: 36 }).notNull().references(() => garages_1.garages.id),
     securityUserId: (0, mysql_core_1.char)("security_user_id", { length: 36 }).notNull().references(() => Users_1.users.id),
+    driverId: (0, mysql_core_1.char)("driver_id", { length: 36 }).references(() => Users_1.users.id),
     description: (0, mysql_core_1.text)("description"),
     checkInTime: (0, mysql_core_1.timestamp)("check_in_time").notNull(),
     checkOutTime: (0, mysql_core_1.timestamp)("check_out_time"),

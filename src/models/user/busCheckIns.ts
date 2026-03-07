@@ -9,6 +9,7 @@ export const busCheckIns = mysqlTable("bus_check_ins", {
     busId: char("bus_id", { length: 36 }).notNull().references(() => buses.id),
     garageId: char("garage_id", { length: 36 }).notNull().references(() => garages.id),
     securityUserId: char("security_user_id", { length: 36 }).notNull().references(() => users.id),
+    driverId: char("driver_id", { length: 36 }).references(() => users.id),
 
     description: text("description"),
 

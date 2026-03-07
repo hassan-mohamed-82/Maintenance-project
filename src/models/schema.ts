@@ -11,3 +11,4 @@ export * from "./admin/zone";
 export * from "./admin/garages";
 export * from "./admin/Users";
 export * from "./user/busCheckIns";
+export * from "./user/busCheckInMaintenanceTypes";

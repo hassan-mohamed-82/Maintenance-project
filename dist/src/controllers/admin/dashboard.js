@@ -85,15 +85,31 @@ const getBusCheckinDetails = async (req, res) => {
         checkInTime: schema_1.busCheckIns.checkInTime,
         description: schema_1.busCheckIns.description,
         garageName: schema_1.garages.name,
+        driverName: schema_1.users.name,
+        checkInId: schema_1.busCheckIns.id,
     })
         .from(schema_1.buses)
         .leftJoin(schema_1.busCheckIns, (0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.busId, schema_1.buses.id), isCheckedInCondition))
         .leftJoin(schema_1.garages, (0, drizzle_orm_1.eq)(schema_1.garages.id, schema_1.busCheckIns.garageId))
+        .leftJoin(schema_1.users, (0, drizzle_orm_1.eq)(schema_1.users.id, schema_1.busCheckIns.driverId))
         .where((0, drizzle_orm_1.eq)(schema_1.buses.id, busId))
         .limit(1);
     if (details.length === 0) {
         return res.status(404).json({ success: false, message: "Bus not found" });
     }
-    (0, response_1.SuccessResponse)(res, { bus: details[0] }, 200);
+    const busDetails = details[0];
+    let reportedMaintenances = [];
+    if (busDetails.checkInId) {
+        const maintenanceData = await db_1.db
+            .select({
+            name: schema_1.maintenanceTypes.name
+        })
+            .from(schema_1.checkInMaintenanceTypes)
+            .innerJoin(schema_1.maintenanceTypes, (0, drizzle_orm_1.eq)(schema_1.maintenanceTypes.id, schema_1.checkInMaintenanceTypes.maintenanceTypeId))
+            .where((0, drizzle_orm_1.eq)(schema_1.checkInMaintenanceTypes.busCheckInId, busDetails.checkInId));
+        reportedMaintenances = maintenanceData.map(m => m.name);
+    }
+    const { checkInId, ...responseBusDetails } = busDetails;
+    (0, response_1.SuccessResponse)(res, { bus: { ...responseBusDetails, reportedMaintenances } }, 200);
 };
 exports.getBusCheckinDetails = getBusCheckinDetails;
