@@ -8,6 +8,8 @@ const router = (0, express_1.Router)();
 router.post("/", (0, catchAsync_1.catchAsync)(users_1.createUser));
 // ✅ Get All Users Selection
 router.get("/selection", (0, catchAsync_1.catchAsync)(users_1.getUsersSelection));
+// ✅ Get All garages
+router.get("/garages", (0, catchAsync_1.catchAsync)(users_1.selectgarages));
 // ✅ Get All Users
 router.get("/", (0, catchAsync_1.catchAsync)(users_1.getUsers));
 // ✅ Get User By ID

@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { db } from "../../models/db";
-import { users } from "../../models/schema";
+import { garages, users } from "../../models/schema";
 import { eq, desc, and, ne } from "drizzle-orm";
 import { SuccessResponse } from "../../utils/response";
 import { NotFound } from "../../Errors/NotFound";
@@ -220,4 +220,16 @@ export const getUsersSelection = async (req: Request, res: Response) => {
         .orderBy(users.name);
 
     return SuccessResponse(res, { users: userList }, 200);
+};
+
+
+export const selectgarages = async (req: Request, res: Response) => {
+    const garagesList = await db
+        .select({
+            id: garages.id,
+            name: garages.name,
+        })
+        .from(garages);
+
+    return SuccessResponse(res, { garages: garagesList }, 200);
 };

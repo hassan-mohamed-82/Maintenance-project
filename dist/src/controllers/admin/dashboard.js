@@ -50,25 +50,95 @@ const getGaragesBusesStats = async (req, res) => {
         .leftJoin(schema_1.buses, (0, drizzle_orm_1.eq)(schema_1.buses.id, schema_1.busCheckIns.busId) // بنجيب بيانات الباص بناءً على الـ CheckIn بتاعه
     )
         .groupBy(schema_1.garages.id, schema_1.garages.name);
-    (0, response_1.SuccessResponse)(res, { garages: stats }, 200);
+    // جلب كل الـ check-in IDs اللي لسه جوه الجراجات
+    const allCheckIns = await db_1.db
+        .select({
+        garageId: schema_1.busCheckIns.garageId,
+        checkInId: schema_1.busCheckIns.id,
+    })
+        .from(schema_1.busCheckIns)
+        .where(isCheckedInCondition);
+    const allCheckInIds = allCheckIns.map(c => c.checkInId);
+    // جلب أنواع الأعطال لكل check-in
+    let maintenancesMap = {};
+    if (allCheckInIds.length > 0) {
+        const maintenancesData = await db_1.db
+            .select({
+            checkInId: schema_1.checkInMaintenanceTypes.busCheckInId,
+            maintenanceName: schema_1.maintenanceTypes.name,
+        })
+            .from(schema_1.checkInMaintenanceTypes)
+            .innerJoin(schema_1.maintenanceTypes, (0, drizzle_orm_1.eq)(schema_1.maintenanceTypes.id, schema_1.checkInMaintenanceTypes.maintenanceTypeId))
+            .where((0, drizzle_orm_1.inArray)(schema_1.checkInMaintenanceTypes.busCheckInId, allCheckInIds));
+        for (const m of maintenancesData) {
+            if (!maintenancesMap[m.checkInId]) {
+                maintenancesMap[m.checkInId] = [];
+            }
+            maintenancesMap[m.checkInId].push(m.maintenanceName);
+        }
+    }
+    // تجميع الأعطال حسب الجراج
+    const garageMaintenancesMap = {};
+    for (const c of allCheckIns) {
+        const faults = maintenancesMap[c.checkInId] || [];
+        if (!garageMaintenancesMap[c.garageId]) {
+            garageMaintenancesMap[c.garageId] = [];
+        }
+        garageMaintenancesMap[c.garageId].push(...faults);
+    }
+    // إزالة الأعطال المكررة لكل جراج
+    const result = stats.map(g => ({
+        ...g,
+        reportedMaintenances: [...new Set(garageMaintenancesMap[g.garageId] || [])],
+    }));
+    (0, response_1.SuccessResponse)(res, { garages: result }, 200);
 };
 exports.getGaragesBusesStats = getGaragesBusesStats;
 const getGarageBusesList = async (req, res) => {
     const { garageId } = req.params;
     const garageBuses = await db_1.db
         .select({
+        checkInId: schema_1.busCheckIns.id,
         busId: schema_1.buses.id,
         busNumber: schema_1.buses.busNumber,
         plateNumber: schema_1.buses.plateNumber,
         status: schema_1.buses.status,
         checkInTime: schema_1.busCheckIns.checkInTime,
         description: schema_1.busCheckIns.description,
+        driverName: schema_1.users.name,
     })
         .from(schema_1.busCheckIns)
         .innerJoin(schema_1.buses, (0, drizzle_orm_1.eq)(schema_1.buses.id, schema_1.busCheckIns.busId))
+        .leftJoin(schema_1.users, (0, drizzle_orm_1.eq)(schema_1.users.id, schema_1.busCheckIns.driverId))
         .where((0, drizzle_orm_1.and)((0, drizzle_orm_1.eq)(schema_1.busCheckIns.garageId, garageId), isCheckedInCondition))
         .orderBy((0, drizzle_orm_1.desc)(schema_1.busCheckIns.checkInTime));
-    (0, response_1.SuccessResponse)(res, { buses: garageBuses }, 200);
+    // جلب أنواع الصيانة (الأعطال) لكل check-in
+    const checkInIds = garageBuses.map(b => b.checkInId);
+    let maintenancesMap = {};
+    if (checkInIds.length > 0) {
+        const maintenancesData = await db_1.db
+            .select({
+            checkInId: schema_1.checkInMaintenanceTypes.busCheckInId,
+            maintenanceName: schema_1.maintenanceTypes.name,
+        })
+            .from(schema_1.checkInMaintenanceTypes)
+            .innerJoin(schema_1.maintenanceTypes, (0, drizzle_orm_1.eq)(schema_1.maintenanceTypes.id, schema_1.checkInMaintenanceTypes.maintenanceTypeId))
+            .where((0, drizzle_orm_1.inArray)(schema_1.checkInMaintenanceTypes.busCheckInId, checkInIds));
+        for (const m of maintenancesData) {
+            if (!maintenancesMap[m.checkInId]) {
+                maintenancesMap[m.checkInId] = [];
+            }
+            maintenancesMap[m.checkInId].push(m.maintenanceName);
+        }
+    }
+    const result = garageBuses.map(b => {
+        const { checkInId, ...rest } = b;
+        return {
+            ...rest,
+            reportedMaintenances: maintenancesMap[checkInId] || [],
+        };
+    });
+    (0, response_1.SuccessResponse)(res, { buses: result }, 200);
 };
 exports.getGarageBusesList = getGarageBusesList;
 const getBusCheckinDetails = async (req, res) => {

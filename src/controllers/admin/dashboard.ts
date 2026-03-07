@@ -67,7 +67,55 @@ export const getGaragesBusesStats = async (req: Request, res: Response) => {
         )
         .groupBy(garages.id, garages.name);
 
-    SuccessResponse(res, { garages: stats }, 200);
+    // جلب كل الـ check-in IDs اللي لسه جوه الجراجات
+    const allCheckIns = await db
+        .select({
+            garageId: busCheckIns.garageId,
+            checkInId: busCheckIns.id,
+        })
+        .from(busCheckIns)
+        .where(isCheckedInCondition);
+
+    const allCheckInIds = allCheckIns.map(c => c.checkInId);
+
+    // جلب أنواع الأعطال لكل check-in
+    let maintenancesMap: Record<string, string[]> = {};
+
+    if (allCheckInIds.length > 0) {
+        const maintenancesData = await db
+            .select({
+                checkInId: checkInMaintenanceTypes.busCheckInId,
+                maintenanceName: maintenanceTypes.name,
+            })
+            .from(checkInMaintenanceTypes)
+            .innerJoin(maintenanceTypes, eq(maintenanceTypes.id, checkInMaintenanceTypes.maintenanceTypeId))
+            .where(inArray(checkInMaintenanceTypes.busCheckInId, allCheckInIds));
+
+        for (const m of maintenancesData) {
+            if (!maintenancesMap[m.checkInId]) {
+                maintenancesMap[m.checkInId] = [];
+            }
+            maintenancesMap[m.checkInId].push(m.maintenanceName);
+        }
+    }
+
+    // تجميع الأعطال حسب الجراج
+    const garageMaintenancesMap: Record<string, string[]> = {};
+    for (const c of allCheckIns) {
+        const faults = maintenancesMap[c.checkInId] || [];
+        if (!garageMaintenancesMap[c.garageId]) {
+            garageMaintenancesMap[c.garageId] = [];
+        }
+        garageMaintenancesMap[c.garageId].push(...faults);
+    }
+
+    // إزالة الأعطال المكررة لكل جراج
+    const result = stats.map(g => ({
+        ...g,
+        reportedMaintenances: [...new Set(garageMaintenancesMap[g.garageId] || [])],
+    }));
+
+    SuccessResponse(res, { garages: result }, 200);
 };
 
 export const getGarageBusesList = async (req: Request, res: Response) => {
@@ -75,15 +123,18 @@ export const getGarageBusesList = async (req: Request, res: Response) => {
 
     const garageBuses = await db
         .select({
+            checkInId: busCheckIns.id,
             busId: buses.id,
             busNumber: buses.busNumber,
             plateNumber: buses.plateNumber,
             status: buses.status,
             checkInTime: busCheckIns.checkInTime,
             description: busCheckIns.description,
+            driverName: users.name,
         })
         .from(busCheckIns)
         .innerJoin(buses, eq(buses.id, busCheckIns.busId))
+        .leftJoin(users, eq(users.id, busCheckIns.driverId))
         .where(
             and(
                 eq(busCheckIns.garageId, garageId),
@@ -92,7 +143,38 @@ export const getGarageBusesList = async (req: Request, res: Response) => {
         )
         .orderBy(desc(busCheckIns.checkInTime));
 
-    SuccessResponse(res, { buses: garageBuses }, 200);
+    // جلب أنواع الصيانة (الأعطال) لكل check-in
+    const checkInIds = garageBuses.map(b => b.checkInId);
+
+    let maintenancesMap: Record<string, string[]> = {};
+
+    if (checkInIds.length > 0) {
+        const maintenancesData = await db
+            .select({
+                checkInId: checkInMaintenanceTypes.busCheckInId,
+                maintenanceName: maintenanceTypes.name,
+            })
+            .from(checkInMaintenanceTypes)
+            .innerJoin(maintenanceTypes, eq(maintenanceTypes.id, checkInMaintenanceTypes.maintenanceTypeId))
+            .where(inArray(checkInMaintenanceTypes.busCheckInId, checkInIds));
+
+        for (const m of maintenancesData) {
+            if (!maintenancesMap[m.checkInId]) {
+                maintenancesMap[m.checkInId] = [];
+            }
+            maintenancesMap[m.checkInId].push(m.maintenanceName);
+        }
+    }
+
+    const result = garageBuses.map(b => {
+        const { checkInId, ...rest } = b;
+        return {
+            ...rest,
+            reportedMaintenances: maintenancesMap[checkInId] || [],
+        };
+    });
+
+    SuccessResponse(res, { buses: result }, 200);
 };
 
 export const getBusCheckinDetails = async (req: Request, res: Response) => {

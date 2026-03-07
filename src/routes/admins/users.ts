@@ -5,7 +5,8 @@ import {
     getUserById,
     updateUser,
     deleteUser,
-    getUsersSelection
+    getUsersSelection,
+    selectgarages
 } from "../../controllers/admin/users";
 import { catchAsync } from "../../utils/catchAsync";
 import { validate } from "../../middlewares/validation";
@@ -17,6 +18,9 @@ router.post("/", catchAsync(createUser));
 
 // ✅ Get All Users Selection
 router.get("/selection", catchAsync(getUsersSelection));
+
+// ✅ Get All garages
+router.get("/garages", catchAsync(selectgarages));
 
 // ✅ Get All Users
 router.get("/", catchAsync(getUsers));
